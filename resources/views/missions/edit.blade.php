@@ -7,72 +7,76 @@
     @include('templates.header')
 
     <div class="content-wrapper">
-        <h1>Editing Mission @{{ mission.name }}</h1>
+        <h1>Editing Mission @{{mission.data.name}}</h1>
         <main>
             <form name="editMissionForm" novalidate>
                 <fieldset>
-                    <legend>@{{ mission.name }} Mission</legend>
+                    <legend>@{{ mission.data.name }} Mission</legend>
 
                     <ul>
                         <li class="gr-12">
                             <label>Mission Name</label>
-                            <input type="text" name="mission-name" ng-model="mission.name" placeholder="Enter a unique mission name here" required />
+                            <input type="text" name="mission-name" ng-model="mission.data.name" placeholder="Enter a unique mission name here" required />
                         </li>
 
                         <li class="gr-6">
                             <label>Contractor</label>
-                            <input type="text" ng-model="mission.contractor" required/>
+                            <input type="text" ng-model="mission.data.contractor" required/>
                         </li>
 
                         <li class="gr-6">
                             <label>Mission Type <i class="fa fa-info-circle"></i></label>
                             <span>Selecting the type of mission determines the mission icon and image, if it is not set.</span>
-                            <select ng-model="mission.mission_type_id" ng-options="missionType.mission_type_id as missionType.name for missionType in data.missionTypes" required></select>
+                            <select ng-model="mission.data.mission_type_id" ng-options="missionType.mission_type_id as missionType.name for missionType in data.missionTypes" required></select>
                         </li>
 
-                        <li class="gr-12">
-                            <label>Launch Date Time</label>
-                            <input type="text" ng-model="mission.launch_date_time" placeholder="Entering a text string is okay, but if a precise date is needed, please follow MySQL date format" required/>
+                        <li class="gr-8">
+                            <label>Launch Date Time (UTC)</label>
+                            <input type="text" ng-model="mission.data.launch_date_time" placeholder="Entering a text string is okay, but if a precise date is needed, please follow MySQL date format" required/>
                         </li>
-
+						<li class="gr-4">
+                            <label>Launch Specificity</label>
+                            <select ng-model="mission.data.launch_specificity"  ng-options="launchSpecificity.value as launchSpecificity.text for launchSpecificity in data.specificities" required/>
+                        </li>
+						
                         <li class="gr-4">
                             <label>Vehicle</label>
-                            <select ng-model="mission.vehicle_id" ng-options="vehicle.vehicle_id as vehicle.vehicle for vehicle in data.vehicles" required></select>
+                            <select ng-model="mission.data.vehicle_id" ng-options="vehicle.vehicle_id as vehicle.vehicle for vehicle in data.vehicles" required></select>
 
                         </li>
 
                         <li class="gr-4">
                             <label for="">Launch Site</label>
-                            <select ng-model="mission.launch_site_id" ng-options="launchSite.location_id as launchSite.fullLocation for launchSite in data.launchSites" required></select>
+                            <select ng-model="mission.data.launch_site_id" ng-options="launchSite.location_id as launchSite.fullLocation for launchSite in data.launchSites" required></select>
 
                         </li>
 
                         <li class="gr-4">
                             <label for="">Destination</label>
-                            <select ng-model="mission.destination_id" ng-options="destination.destination_id as destination.destination for destination in data.destinations" required></select>
+                            <select ng-model="mission.data.destination_id" ng-options="destination.destination_id as destination.destination for destination in data.destinations" required></select>
 
                         </li>
 
                         <li class="gr-12">
                             <label for="">Summary</label>
-                            <textarea ng-model="mission.summary" placeholder="Short mission summary goes here. Please keep it less than 500 characters." required maxlength="500"></textarea>
+                            <textarea ng-model="mission.data.summary" placeholder="Short mission summary goes here. Please keep it less than 500 characters." required maxlength="500"></textarea>
                         </li>
 
                         <li class="gr-4">
                             <label for="">Launch Illumination</label>
-                            <select ng-model="mission.launch_illumination" ng-options="launchIllumination for launchIllumination in data.launchIlluminations">
+                            <select ng-model="mission.data.launch_illumination" ng-options="launchIllumination for launchIllumination in data.launchIlluminations">
                                 <option value="">Unknown</option>
                             </select>
                         </li>
 
                         <li class="gr-4">
                             <label for="">Status</label>
-                            <select ng-model="mission.status" ng-options="status for status in data.statuses"></select>
+                            <select ng-model="mission.data.status" ng-options="status for status in data.statuses"></select>
                         </li>
 
                         <li class="gr-4">
                             <label for="">Outcome</label>
-                            <select ng-model="mission.outcome" ng-options="outcome for outcome in data.outcomes">
+                            <select ng-model="mission.data.outcome" ng-options="outcome for outcome in data.outcomes">
                                 <option value="">Unknown</option>
                             </select>
                         </li>
@@ -84,7 +88,7 @@
                     <ul>
                         <li class="gr-12">
                             <label for="">Article</label>
-                            <textarea ng-model="mission.article" placeholder="Mission article" maxlength="5000" placeholder="You can use markdown here." ng-minlength="1000" character-count></textarea>
+                            <textarea ng-model="mission.data.article" placeholder="Mission article" maxlength="5000" placeholder="You can use markdown here." ng-minlength="1000" character-count></textarea>
                         </li>
                     </ul>
                 </fieldset>
@@ -363,7 +367,7 @@
 
                 </fieldset>
 
-                <input type="submit" ng-click="updateMission(mission)" ng-disabled="editMissionForm.$invalid" value="Save Mission"/>
+                <input type="submit" ng-click="mission.make()" ng-disabled="editMissionForm.$invalid" value="Save Mission"/>
             </form>
         </main>
     </div>

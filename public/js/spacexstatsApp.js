@@ -1083,7 +1083,17 @@
             eventTypes: ['Wet Dress Rehearsal', 'Static Fire'],
             launchIlluminations: ['Day', 'Night', 'Twilight'],
             statuses: ['Upcoming', 'Complete', 'In Progress'],
-            outcomes: ['Failure', 'Success']
+            outcomes: ['Failure', 'Success'],
+			specificities: [
+				{'value' : 0, 'text' : 'Year'},
+				{'value' : 1, 'text' : 'Half'},
+				{'value' : 2, 'text' : 'Subyear'},
+				{'value' : 3, 'text' : 'Quarter'},
+				{'value' : 4, 'text' : 'Month'},
+				{'value' : 5, 'text' : 'Submonth'},
+				{'value' : 6, 'text' : 'Day'},
+				{'value' : 7, 'text' : 'Precise'}	
+			]
         };
 
         $scope.filters = {
@@ -1113,7 +1123,9 @@
                 return $http.patch('/missions/' + mission.slug + '/edit', {
                     mission: mission,
                     _token: CSRF_TOKEN
-                });
+                }).then(function(response){
+					console.log(response);
+				});;
             }
         };
     }]);
@@ -2230,11 +2242,12 @@
             signUpService.go($scope.user).then(function(response) {
                 $scope.hasSignedUp = true;
                 $scope.isSigningUp = false;
-            }, function() {
+            }, function(response) {
                 // Otherwise show error
                 $scope.isSigningUp = false;
                 $scope.signUpButtonText = "Sign Up";
                 flashMessage.addError('Your account could not be created. Please contact us.');
+				console.log(response);
             });
         }
     }]);
@@ -2499,6 +2512,7 @@
                 }
 
                 $scope.isPaused = typeof $scope.isPaused !== 'undefined' ? $scope.isPaused : false;
+				$scope.isPaused = $scope.isPaused == "0" ? false : $scope.isPaused;
                 $scope.isVisibleWhenPaused = typeof $scope.isVisibleWhenPaused !== 'undefined' ? $scope.isVisibleWhenPaused : false;
 
                 $scope.isLaunchExact = angular.isUndefined($scope.specificity) || $scope.specificity == 6 || $scope.specificity == 7;
@@ -2573,9 +2587,11 @@
 
                 // Set the format to be displayed based on the launch specificity
                 switch ($scope.launchSpecificity) {
+					case "6":
                     case 6:
                         $scope.currentFormat = 'MMMM d, yyyy';
                         break;
+					case "7":
                     case 7:
                         $scope.currentFormat = 'h:mm:ssa MMMM d, yyyy';
                         break;
@@ -2608,9 +2624,9 @@
                 };
 
                 $scope.displayDateTime = function() {
-                    if ($scope.isHoveringOverAlert) {
-                        return 'This launch has no time yet';
-                    }
+                    //if ($scope.isHoveringOverAlert) {
+                    //    return 'This launch has no time yets';
+                    //}
                     if ($scope.launchSpecificity >= 6) {
                         return $filter('date')(moment.utc($scope.launchDateTime, 'YYYY-MM-DD HH:mm:ss').toDate(), $scope.currentFormat, $scope.currentTimezone);
                     } else {

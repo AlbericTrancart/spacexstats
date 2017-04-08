@@ -94,7 +94,7 @@ class MissionsController extends Controller {
                 $transformedMission['launch_of_year'] = ordinal($mission->launch_of_year);
                 $transformedMission['launch_site'] = $mission->launchSite->full_location;
                 $transformedMission['featured_image_url'] = $mission->present()->featuredImageUrl();
-                $transformedMission['launch_probability'] = $mission->present()->launchProbability();
+                //$transformedMission['launch_probability'] = $mission->present()->launchProbability();
 
                 return $transformedMission;
             })

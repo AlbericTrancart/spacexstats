@@ -17,13 +17,8 @@
             <div>{{ mission.destination.destination }}</div>
             <div>{{ mission.launch_site }}</div>
             <div ng-if="mission.status == 'Complete' && mission.outcome == 'Success'">{{ mission.successful_consecutive_launch }}</div>
-            <div ng-if="mission.status == 'Upcoming'">
-                {{ mission.launch_probability }}%
-            </div>
             <!--<div ng-if="mission.status == 'Upcoming'">
-                <a href="/locations">
-                    <img class="where-to-watch" ng-src="/images/icons/wheretowatch.png" />
-                </a>
+                {{ mission.launch_probability }}%
             </div>-->
             <div ng-if="mission.status == 'Complete'">
                 <img class="launch-illumination" ng-src="/images/icons/illuminations/{{ mission.launch_illumination }}.png" /></div>
@@ -41,8 +36,7 @@
             <div>Vehicle</div>
             <div>Destination</div>
             <div>Launch Site</div>
-            <div ng-if="mission.status == 'Upcoming'">Probability of Launch</div>
-            <!--<div ng-if="mission.status == 'Upcoming'">Where to watch</div>-->
+            <!--<div ng-if="mission.status == 'Upcoming'">Probability of Launch</div>-->
             <div ng-if="mission.status == 'Complete' && mission.outcome == 'Success'">Successful Consecutive Launch</div>
             <div ng-if="mission.status == 'Complete'">{{ mission.launch_illumination }} Launch</div>
             <div><a ng-href="/missioncontrol/collections/mission/{{ mission.slug }}">Mission Collection</a></div>

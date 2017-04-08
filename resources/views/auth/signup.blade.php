@@ -10,7 +10,7 @@
         <h1>Join SpaceX Stats</h1>
         <main>
             <p class="exclaim">Mission Control is currently in private beta and will be releasing in early 2016.</p>
-            <!--<div class="gr-6@xlarge gr-12@medium gr-centered" ng-hide="hasSignedUp">
+            <div class="gr-6@xlarge gr-12@medium gr-centered" ng-hide="hasSignedUp">
                 <form name="signUpForm" novalidate>
                     {!! csrf_field() !!}
                     <ul>
@@ -56,7 +56,7 @@
             <div ng-show="hasSignedUp">
                 <p class="exclaim">Thanks for signing up!</p>
                 <p>You can activate your account by clicking the confirmation link in the email we just sent you.</p>
-            </div>-->
+            </div>
 
         </main>
     </div>

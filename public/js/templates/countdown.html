@@ -22,7 +22,8 @@
 </table>
 <table class="countdown" ng-if="type == 'classic' && isPaused && !isVisibleWhenPaused">
     <tr>
-        <td class="value">Paused</td>
+        <td class="value">Pauseds</td>
+		<td class="value">{{ countdownText }}</td>
     </tr>
 </table>
 <table class="countdown live" ng-class="{ 't-minus-zero': tMinusZero }" ng-if="type == 'live' && (!isPaused || isVisibleWhenPaused)">

@@ -9,7 +9,7 @@ use SpaceXStats\Models\Object;
 class DeltaVCalculator {
 
     const DELTAV_TO_DAY_CONVERSION_RATE     = 1000;
-    const SECONDS_PER_DAY                   = 60 * 60 * 24;
+    const SECONDS_PER_DAY                   = 86400;
 
     protected $object;
     protected $score = 0;

@@ -23,9 +23,9 @@
 			<a id="logo" href="/">SpaceX Stats</a>
 			<nav>
 				<ul>
-                    <li class="gr-1on8 gr-12@small">
+                    <!--<li class="gr-1on8 gr-12@small">
                         <a href="/live">Live</a>
-                    </li>
+                    </li>-->
 					<li class="gr-1on8 gr-12@small">
                         <a href="/missions/past">Past Missions</a>
 						<ul class="nav-second-tier wide">
@@ -42,19 +42,19 @@
 							@endforeach
 						</ul>
 					</li>
-					<li class="gr-1on8 gr-12@small">
+					<!--<li class="gr-1on8 gr-12@small">
 						More...
 						<ul class="nav-second-tier wide">
-                            <!--<li><a href="/locations">Locations</a></li>-->
-							<!--<li><a href="/newssummaries">News Summaries</a></li>-->
-							<!--<li><a href="/faq">Frequently Asked Questions</a></li>-->
-							<!--<li><a href="/rss">RSS Updates</a></li>-->
-                            <!--<li><a href="/community">Community</a></li>-->
+                            <li><a href="/locations">Locations</a></li>
+							<li><a href="/newssummaries">News Summaries</a></li>
+							<li><a href="/faq">Frequently Asked Questions</a></li>
+							<li><a href="/rss">RSS Updates</a></li>
+                            <li><a href="/community">Community</a></li>
 							<li><a href="/about/docs#spacexstats">About</a></li>
 							<li><a href="/about/contact">Contact & Tips</a></li>
 						</ul>
-					</li>
-					<li class="gr-1on8 gr-12@small push-3 push-0@small">
+					</li>-->
+					<!--<li class="gr-1on8 gr-12@small push-3 push-0@small">
                         <a href="/missioncontrol">Mission Control</a>
 						<ul class="nav-second-tier">
 							@if (Auth::isSubscriber())
@@ -92,7 +92,7 @@
 							</ul>
 						@endif
 						</ul>
-					</li>
+					</li>-->
 				</ul>
 			</nav>
 	</header>

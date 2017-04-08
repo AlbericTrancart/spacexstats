@@ -17,14 +17,7 @@
 			<div>{{ $mission->vehicle->specific_vehicle }}</div>
 			<div>{{ $mission->destination->destination }}</div>
 			<div>{{ $mission->launchSite->full_location }}</div>
-			@if ($mission->status == 'Upcoming')
-                <div>{{ $mission->present()->launchProbability() }}%</div>
-				<!--<div>
-                    <a href="/locations#">
-                        <img class="where-to-watch" ng-src="/images/icons/wheretowatch.png" />
-                    </a>
-                </div>-->
-			@endif
+			
 			@if ($mission->status == 'Complete')
                 @if ($mission->outcome == 'Success')
                     <div>{{ ordinal($mission->successful_consecutive_launch) }}</div>

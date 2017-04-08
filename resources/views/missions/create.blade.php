@@ -13,50 +13,53 @@
 
             <form name="createMissionForm">
                 <fieldset>
-                    <legend>@{{ mission.name }} Mission</legend>
+                    <legend>@{{ mission.data.name }} Mission</legend>
 
                     <ul>
                         <li class="gr-12">
                             <label>Mission Name</label>
-                            <input type="text" name="mission-name" ng-model="mission.name" placeholder="Enter a unique mission name here" required />
+                            <input type="text" name="mission-name" ng-model="mission.data.name" placeholder="Enter a unique mission name here" required />
                         </li>
 
                         <li class="gr-6">
                             <label>Contractor</label>
-                            <input type="text" ng-model="mission.contractor" required/>
+                            <input type="text" ng-model="mission.data.contractor" required/>
                         </li>
 
                         <li class="gr-6">
                             <label>Mission Type <i class="fa fa-info" title="Selecting the type of mission determines the mission icon and image, if it is not set."></i></label>
-                            <select ng-model="mission.mission_type_id" ng-options="missionType.mission_type_id as missionType.name for missionType in data.missionTypes" required></select>
+                            <select ng-model="mission.data.mission_type_id" ng-options="missionType.mission_type_id as missionType.name for missionType in data.missionTypes" required></select>
                         </li>
 
-                        <li class="gr-12">
+                        <li class="gr-8">
                             <label>Launch Date Time</label>
-                            <input type="text" ng-model="mission.launchDateTime" placeholder="Entering a text string is okay, but if a precise date is needed, please follow MySQL date format" launch-date-validity required/>
+                            <input type="text" ng-model="mission.data.launch_date_time" placeholder="Entering a text string is okay, but if a precise date is needed, please follow MySQL date format" required/>
                         </li>
-
+						<li class="gr-4">
+                            <label>Launch Specificity</label>
+                            <select ng-model="mission.data.launch_specificity"  ng-options="launchSpecificity.value as launchSpecificity.text for launchSpecificity in data.specificities" required/></select>
+                        </li>
                         <li class="gr-4">
                             <label>Vehicle</label>
-                            <select ng-model="mission.vehicle_id" ng-options="vehicle.vehicle_id as vehicle.vehicle for vehicle in data.vehicles" required></select>
+                            <select ng-model="mission.data.vehicle_id" ng-options="vehicle.vehicle_id as vehicle.vehicle for vehicle in data.vehicles" required></select>
 
                         </li>
 
                         <li class="gr-4">
                             <label>Launch Site</label>
-                            <select ng-model="mission.launch_site_id" ng-options="launchSite.location_id as launchSite.fullLocation for launchSite in data.launchSites" required></select>
+                            <select ng-model="mission.data.launch_site_id" ng-options="launchSite.location_id as launchSite.fullLocation for launchSite in data.launchSites" required></select>
 
                         </li>
 
                         <li class="gr-4">
                             <label>Destination</label>
-                            <select ng-model="mission.destination_id" ng-options="destination.destination_id as destination.destination for destination in data.destinations" required></select>
+                            <select ng-model="mission.data.destination_id" ng-options="destination.destination_id as destination.destination for destination in data.destinations" required></select>
 
                         </li>
 
                         <li class="gr-12">
                             <label>Summary</label>
-                            <textarea ng-model="mission.summary" placeholder="Short mission summary goes here. Please keep it less than 500 characters." required maxlength="500"></textarea>
+                            <textarea ng-model="mission.data.summary" placeholder="Short mission summary goes here. Please keep it less than 500 characters." required maxlength="500"></textarea>
                         </li>
 
                         <li class="gr-12">

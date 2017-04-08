@@ -14,6 +14,7 @@ use SpaceXStats\Models\PrelaunchEvent;
 use SpaceXStats\Models\Spacecraft;
 use SpaceXStats\Models\SpacecraftFlight;
 use SpaceXStats\Models\Telemetry;
+use SpaceXStats\Library\Enums\LaunchSpecificity;
 
 class MissionManager {
     private $input, $errors = [];
@@ -55,6 +56,7 @@ class MissionManager {
         }
 
         // Validate any partFlight models
+		/*
         $partFlights = $this->input['mission']['part_flights'];
         foreach ($partFlights as $partFlight) {
 
@@ -113,7 +115,7 @@ class MissionManager {
                     $this->errors['telemetry'][] = $telemetryValidity;
                 }
             }
-        }
+        }*/
 
         return empty($this->errors);
     }
@@ -128,10 +130,10 @@ class MissionManager {
             $this->mission->status = 'Upcoming';
             $this->mission->push();
 
-            $this->managePayloadRelations();
-            $this->managePartFlightRelations();
-            $this->manageSpacecraftFlightRelation();
-            $this->createPrelaunchEventRelation();
+            //$this->managePayloadRelations();
+            //$this->managePartFlightRelations();
+            //$this->manageSpacecraftFlightRelation();
+            //$this->createPrelaunchEventRelation();
 
             DB::commit();
         } catch (Exception $e) {
@@ -149,14 +151,16 @@ class MissionManager {
         try {
             // Fill mission
             $this->mission->fill($this->input('mission'));
+			
+			
             $this->mission->save();
-            //$this->mission->push();
+            $this->mission->push();
 
             // Update any relations, create new relations, delete any relations which have been removed.
-            $this->managePayloadRelations();
-            $this->managePartFlightRelations();
-            $this->manageSpacecraftFlightRelation();
-            $this->manageTelemetryRelations();
+            //$this->managePayloadRelations();
+            //$this->managePartFlightRelations();
+            //$this->manageSpacecraftFlightRelation();
+            //$this->manageTelemetryRelations();
 
             DB::commit();
         } catch (Exception $e) {
@@ -169,6 +173,13 @@ class MissionManager {
     private function input($filter) {
         if ($filter == 'mission') {
             $mission = $this->input['mission'];
+			
+			if($mission['launch_specificity'] >= LaunchSpecificity::Day){
+				$mission['launch_exact'] = $mission['launch_date_time'];
+			}
+			else{
+				$mission['launch_approximate'] = $mission['launch_date_time'];
+			}
             unset($mission['payloads'], $mission['part_flights'], $mission['spacecraft_flight'], $mission['prelaunch_events'], $mission['telemetry']);
             return $mission;
 

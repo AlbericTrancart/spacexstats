@@ -293,8 +293,8 @@ class Mission extends Model {
 
     public function setLaunchDateTimeAttribute($value) {
         // Reorder launches
-        $launchReorderer = new LaunchReorderer($this, $value);
-        $launchReorderer->run();
+        //$launchReorderer = new LaunchReorderer($this, $value);
+        //$launchReorderer->run();
 
         // Also query an API to check the launch visibility (twilight, daytime, etc)
     }

@@ -19,7 +19,7 @@ trait UploadableTrait {
     /**
      * @var int
      */
-    private $multipartUploadThreshold = 1000 * 1000 * 16; // 16MB
+    private $multipartUploadThreshold = 16000000; // 16MB
 
     /**
      * Checks whether the object has a file or not.

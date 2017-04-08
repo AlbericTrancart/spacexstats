@@ -87,7 +87,7 @@
                         <h3>Satellites Launched</h3>
                         @include('templates.cards.payloadsCard', ['mission' => $mission])
                     @endif
-                    <h3>{{ $mission->upperStage->part->name }} Upper Stage</h3>
+                    <h3>{{ isset($mission->upperStage) ? $mission->upperStage->part->name : 'Unspecified'  }} Upper Stage</h3>
 
                 </div>
                 <div class="gr-4 gr-12@small gr-12@medium">

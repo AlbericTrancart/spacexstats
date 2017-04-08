@@ -1,0 +1,17 @@
+# Connect
+open sftp://user:password@yourserver.com/ -hostkey="ssh-rsa 2048 xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx"
+# Change remote directory
+cd /path/to/site
+# Force binary mode transfer
+option transfer binary
+# Upload the file to current working directory
+put app
+put bootstrap
+put config
+put database
+put public
+put resources
+# Disconnect
+close
+# Exit WinSCP
+exit

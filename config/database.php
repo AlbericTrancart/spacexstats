@@ -48,10 +48,10 @@ return [
 
         'mysql' => [
             'driver'    => 'mysql',
-            'host'      => env('DB_HOST'),
-            'database'  => env('DB_DATABASE'),
-            'username'  => env('DB_USERNAME'),
-            'password'  => env('DB_PASSWORD'),
+            'host'      => env('DB_HOST', '192.168.0.114'),
+            'database'  => env('DB_DATABASE', 'spacexstats'),
+            'username'  => env('DB_USERNAME', 'spacexstats'),
+            'password'  => env('DB_PASSWORD', 'spacexstats'),
             'charset'   => 'utf8mb4',
             'collation' => 'utf8mb4_unicode_ci',
             'prefix'    => '',
