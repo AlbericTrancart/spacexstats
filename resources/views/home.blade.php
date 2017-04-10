@@ -44,10 +44,10 @@
 
     <!-- Navigation -->
     <ul id="side-navigation" class="hide@small">
-        <li class="statistic-holder">
+        <li class="hidden">
             <a class="link" ng-class="{ 'active' : activeStatistic == null }" ng-click="goHome()"></a>
         </li>
-        <li class="statistic-holder" ng-repeat="statistic in statistics">
+        <li class="hidden" ng-repeat="statistic in statistics">
             <a class="link" ng-class="{ 'active' : statistic == activeStatistic }" ng-click="goToClickedStatistic(statistic)"></a>
         </li>
     </ul>
@@ -95,7 +95,7 @@
                 <div ng-if="substatistic.display == 'mission'">
                     <countdown countdown-to="substatistic.result.launch_date_time" specificity="substatistic.result.launch_specificity" type="classic">
                     </countdown>
-					
+
                     <launch-date launch-specificity="substatistic.result.launch_specificity" launch-date-time="substatistic.result.launch_date_time"></launch-date>
 
                     <div class="launch-link">
