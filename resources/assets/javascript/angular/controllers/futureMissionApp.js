@@ -2,7 +2,7 @@
     var app = angular.module('app', []);
 
     app.controller("futureMissionController", ['$http', '$scope', '$filter', 'flashMessage', function($http, $scope, $filter, flashMessage) {
-
+		$scope.mission = laravel.mission;
         $scope.missionSlug = laravel.mission.slug;
         $scope.launchSpecificity = laravel.mission.launch_specificity;
         $scope.isLaunchPaused = laravel.mission.launch_paused;

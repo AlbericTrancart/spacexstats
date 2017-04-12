@@ -21,6 +21,7 @@
                 }
 
                 $scope.isPaused = typeof $scope.isPaused !== 'undefined' ? $scope.isPaused : false;
+				$scope.isPaused = $scope.isPaused == "0" ? false : $scope.isPaused;
                 $scope.isVisibleWhenPaused = typeof $scope.isVisibleWhenPaused !== 'undefined' ? $scope.isVisibleWhenPaused : false;
 
                 $scope.isLaunchExact = angular.isUndefined($scope.specificity) || $scope.specificity == 6 || $scope.specificity == 7;

@@ -6,6 +6,13 @@
 /node_modules
 .env
 
+#sftp deployment script
+sftp_deploy.txt
+sftp_deploy_sync.txt
+sftp_deploy_dev.txt
+sftp_deploy_sync_dev.txt
+WinSCP.ini
+
 #frontend app stuff
 /resources/assets/development
 /public/media

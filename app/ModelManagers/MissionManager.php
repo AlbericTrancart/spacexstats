@@ -131,7 +131,7 @@ class MissionManager {
             $this->mission->push();
 
             //$this->managePayloadRelations();
-            //$this->managePartFlightRelations();
+            $this->managePartFlightRelations();
             //$this->manageSpacecraftFlightRelation();
             //$this->createPrelaunchEventRelation();
 
@@ -158,7 +158,7 @@ class MissionManager {
 
             // Update any relations, create new relations, delete any relations which have been removed.
             //$this->managePayloadRelations();
-            //$this->managePartFlightRelations();
+            $this->managePartFlightRelations();
             //$this->manageSpacecraftFlightRelation();
             //$this->manageTelemetryRelations();
 
@@ -169,7 +169,18 @@ class MissionManager {
 
         return $this->mission;
     }
-
+	public function updateOrder(){
+		$postData = Input::all();
+		$missions = $postData['missions'];
+		$affected = 0;
+		$missionCount = sizeOf($missions);
+		for($i=0; $i< $missionCount; $i++){
+			$missionId = $missions[$i]['mission_id'];
+			$launchOrderId = $missions[$i]['launch_order_id'];
+			$affected = DB::update('update missions set launch_order_id = ? where mission_id = ?', [$launchOrderId, $missionId]);
+		}
+		return $affected;
+	}
     private function input($filter) {
         if ($filter == 'mission') {
             $mission = $this->input['mission'];
@@ -189,6 +200,9 @@ class MissionManager {
         } else if ($filter == 'spacecraft') {
             return $this->input['mission']['spacecraft_flight']['spacecraft'];
         }
+		else{
+			return $this->input[$filter];
+		}
     }
 
     private function createPayload($input) {
@@ -237,6 +251,7 @@ class MissionManager {
             $part->fill($partInput);
             $part->save();
 
+			$partFlight->fill($partFlightInput);
             $partFlight->part()->associate($part);
             $partFlight->mission()->associate($this->mission);
             $partFlight->save();

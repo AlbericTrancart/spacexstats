@@ -112,24 +112,12 @@
 
                 <h2>Details</h2>
                 <section class="scrollto" id="details">
-
+					
                     @include('templates.cards.missionCard', ['size' => 'large', 'mission' => $mission])
-
-                    @if ($mission->isNextToLaunch())
-                        <h3>SpaceX Stats Live</h3>
-                        <div>
-                            <p class="exclaim">Watch & follow the launch in real time with <a href="/live">SpaceX Stats Live</a></p>
-                        </div>
-                    @endif
-
-                    <h3>Recent Tweets</h3>
-                    <div id="recent-tweets">
-                        @if ($recentTweets)
-
-                        @else
-                            <p class="exclaim">No tweets for this mission</p>
-                        @endif
-                    </div>
+					<h2>Vehicle Details</h2>
+					<h3>{{ isset($mission->firstStage) ? $mission->firstStage->part->name : 'Unspecified'  }} First Stage</h3>
+                    <h3>{{ isset($mission->upperStage) ? $mission->upperStage->part->name : 'Unspecified'  }} Upper Stage</h3>
+                   
 
                     @if ($mission->payloads->count() > 0)
                         <h3>Satellites To Be Launched</h3>
@@ -163,7 +151,12 @@
 
                 <h2>Timeline</h2>
                 <section class="scrollto" id="timeline">
-                    <canvas></canvas>
+                    <h3>Prelaunch</h3>
+					@if ($mission->prelaunchEvents->count() > 0)
+						<timeline mission="mission"></timeline>
+					@else
+						<p class="exclaim">No Prelaunch Events</p>
+					@endif
                 </section>
 
                 <h2>Articles</h2>

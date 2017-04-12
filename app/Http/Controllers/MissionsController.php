@@ -102,7 +102,27 @@ class MissionsController extends Controller {
 
 		return view('missions.future');
 	}
+	public function allFutureMissionsToOrder() {
 
+        JavaScript::put([
+            'missions' => Mission::future()->with(['vehicle', 'destination'])->get()->map(function($mission) {
+                $transformedMission = $mission->toArray();
+
+                if ($mission->launch_specificity >= LaunchSpecificity::Day) {
+                    $transformedMission['launch_date_time'] = $mission->present()->launchDateTime();
+                }
+                $transformedMission['generic_vehicle'] = $mission->vehicle->generic_vehicle;
+                $transformedMission['generic_vehicle_count'] = ordinal($mission->generic_vehicle_count);
+                $transformedMission['launch_of_year'] = ordinal($mission->launch_of_year);
+                $transformedMission['launch_site'] = $mission->launchSite->full_location;
+                $transformedMission['featured_image_url'] = $mission->present()->featuredImageUrl();
+				//$transformedMission['launch_order_id'] = (int)$mission->launch_order_id;
+                return $transformedMission;
+            })
+        ]);
+
+		return view('missions.order');
+	}
     /**
      * GET, /missions/past. Shows all past missions in a list.
      *
@@ -196,6 +216,11 @@ class MissionsController extends Controller {
         return response()->json(null, 204);
     }
 
+	public function editMissionOrder(MissionManager $missionManager){
+		$missions = $missionManager->updateOrder();
+		//$missionCount = 37;
+		return response()->json($missions);
+	}
     public function patchEdit(MissionManager $missionManager) {
         if ($missionManager->isValid()) {
             $mission = $missionManager->update();
