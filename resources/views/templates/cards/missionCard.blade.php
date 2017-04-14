@@ -38,7 +38,7 @@
 			<div>Destination</div>
 			<div>Launch Site</div>
 			@if ($mission->status == 'Upcoming')
-                <div>Probability of Launch</div>
+                <!--<div>Probability of Launch</div>-->
 				<!--<div>Where to watch</div>-->
 			@endif
 			@if ($mission->status == 'Complete')

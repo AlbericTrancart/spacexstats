@@ -2,6 +2,8 @@
     var app = angular.module('app', []);
 
     app.controller("missionController", ['$scope', 'missionService', function($scope, missionService) {
+		$scope.showAddPart = false;
+		$scope.partFlight = {};
         // Scope the possible form data info
         $scope.data = {
             parts: laravel.parts,
@@ -28,7 +30,17 @@
             eventTypes: ['Wet Dress Rehearsal', 'Static Fire'],
             launchIlluminations: ['Day', 'Night', 'Twilight'],
             statuses: ['Upcoming', 'Complete', 'In Progress'],
-            outcomes: ['Failure', 'Success']
+            outcomes: ['Failure', 'Success'],
+			specificities: [
+				{'value' : 0, 'text' : 'Year'},
+				{'value' : 1, 'text' : 'Half'},
+				{'value' : 2, 'text' : 'Subyear'},
+				{'value' : 3, 'text' : 'Quarter'},
+				{'value' : 4, 'text' : 'Month'},
+				{'value' : 5, 'text' : 'Submonth'},
+				{'value' : 6, 'text' : 'Day'},
+				{'value' : 7, 'text' : 'Precise'}	
+			]
         };
 
         $scope.filters = {
@@ -43,6 +55,16 @@
                 missionService.make($scope.mission.data);
             }
         };
+		
+		$scope.addPartFlight = function(partFlight){
+			if(typeof(this.mission.data.part_flights) == 'undefined'){
+				this.mission.data.part_flights = [];
+			}
+			partFlight.part.type = this.filters.parts.type;
+			this.mission.data.part_flights.push(partFlight);
+			this.partFlight = {};
+			this.showAddPart = false;
+		}
     }]);
 
     app.service("missionService", ["$http", "CSRF_TOKEN", function($http, CSRF_TOKEN) {
@@ -58,7 +80,9 @@
                 return $http.patch('/missions/' + mission.slug + '/edit', {
                     mission: mission,
                     _token: CSRF_TOKEN
-                });
+                }).then(function(response){
+					console.log(response);
+				});;
             }
         };
     }]);

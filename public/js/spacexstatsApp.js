@@ -1,159 +1,65 @@
 (function() {
-    var app = angular.module('app', []);
+    var aboutMissionControlApp = angular.module('app', ['credit-cards']);
 
-    app.service('missionDataService', ["$http", function($http) {
-        this.telemetry = function(slug) {
-            return $http.get('/missions/'+ slug + '/telemetry');
+    aboutMissionControlApp.controller("subscriptionController", ["$scope", "subscriptionService", function($scope, subscriptionService) {
+        $scope.subscriptionButtonText = "Pay $9";
+        $scope.subscriptionState = {
+            isLooking: true,
+            isEnteringDetails: false,
+            isSubscribing: false,
+            hasSubscribed: false,
+            failed: false
         };
 
-        this.orbitalElements = function(slug) {
-            return $http.get('/missions/' + slug + '/orbitalelements').then(function(response) {
-                // premap the dates of the timestamps because otherwise we'll do it too many times
-                if (response.data === Array) {
-                    return response.data.map(function(orbitalElement) {
-                        orbitalElement.epoch = moment(orbitalElement.epoch).toDate();
-                        return orbitalElement;
+        $scope.subscription = {
+            showSubscribeForm: function() {
+                $scope.subscriptionState.isLooking = false;
+                $scope.subscriptionState.isEnteringDetails = true;
+            },
+            subscribe: function($event) {
+                $scope.subscriptionState.isEnteringDetails =  $scope.subscriptionState.failed = false;
+                $scope.subscriptionState.isSubscribing = true;
+                $scope.subscriptionButtonText = "You're awesome";
+
+                var form = $('form[name="subscribeForm"]');
+                Stripe.card.createToken(form, $scope.subscription.stripeResponseHandler);
+            },
+            stripeResponseHandler: function(stripeStatus, stripeResponse) {
+
+                if (stripeResponse.error) {
+                    $scope.subscriptionState.isSubscribing = false;
+                    $scope.subscriptionState.isEnteringDetails = $scope.subscriptionState.failed = true;
+                } else {
+                    // Fetch the token from Stripe's response.
+                    var token = stripeResponse.id;
+
+                    // Subscribe
+                    subscriptionService.subscribe(token).then(function() {
+                        // Success!
+                        $scope.subscriptionState.isSubscribing = false;
+                        $scope.subscriptionState.hasSubscribed = true;
                     });
                 }
-            });
-        };
 
-        this.launchEvents = function(slug) {
-            return $http.get('/missions/' + slug + '/launchevents');
-        }
-    }]);
-})();
-
-(function() {
-    var app = angular.module('app', []);
-
-    app.service('flashMessage', function() {
-        this.addOK = function(message) {
-
-            computeStayTime(message);
-
-            $('<p style="display:none;" class="flash-message success">' + message + '</p>').appendTo('#flash-message-container').slideDown(300);
-
-            setTimeout(function() {
-                $('.flash-message').slideUp(300, function() {
-                    $(this).remove();
-                });
-            }, computeStayTime());
-        };
-
-        this.addError = function(message) {
-
-            computeStayTime(message);
-
-            $('<p style="display:none;" class="flash-message failure">' + message + '</p>').appendTo('#flash-message-container').slideDown(300);
-
-            setTimeout(function() {
-                $('.flash-message').slideUp(300, function() {
-                    $(this).remove();
-                });
-            }, computeStayTime());
-        };
-
-        var computeStayTime = function(message) {
-            // Avg characters per word: 5.1
-            // Avg reading speed of 200 wpm:
-            //var totalChara
-            return 3000;
-        };
-    });
-})();
-
-
-(function() {
-    var missionsListApp = angular.module('app', []);
-
-    missionsListApp.controller("missionsListController", ['$scope', function($scope) {
-        $scope.missions = laravel.missions;
-
-        // Cheap way to get the next launch (only use on future mission page)
-        $scope.nextLaunch = function() {
-            return $scope.missions[0];
-        };
-
-        // Cheap way to get the previous launch (only use on past mission page)
-        $scope.lastLaunch = function() {
-            return $scope.missions[$scope.missions.length - 1];
-        };
-
-        $scope.currentYear = function() {
-            return moment().year();
-        };
-
-        $scope.missionsInYear = function(year, completeness) {
-            return $scope.missions.filter(function(mission) {
-                return moment(mission.launch_date_time).year() == year && mission.status == completeness;
-            }).length;
-        };
-    }]);
-})();
-(function() {
-    var missionControlApp = angular.module("app", []);
-
-    missionControlApp.controller("missionControlController", ["$scope", "missionControlService", function($scope, missionControlService) {
-        $scope.hasSearchResults = false;
-        $scope.isCurrentlySearching = false;
-        $scope.pageTitle = "Mission Control";
-
-        $scope.$on('startedSearching', function() {
-            $scope.hasSearchResults = false;
-            $scope.isCurrentlySearching = true;
-            $scope.pageTitle = "Searching...";
-        });
-
-        $scope.$on('finishedSearching', function(event, arg) {
-            $scope.hasSearchResults = true;
-            $scope.isCurrentlySearching = false;
-            $scope.pageTitle = '"' + arg + '" results';
-        });
-
-        $scope.$on('exitSearchMode', function(event, arg) {
-            $scope.hasSearchResults = $scope.isCurrentlySearching = false;
-            $scope.pageTitle = "Mission Control";
-        });
-
-        $scope.missioncontrol = {
-            objects: {
-                visibleSection: 'latest',
-                show: function(sectionToShow) {
-                    $scope.missioncontrol.objects.visibleSection = sectionToShow;
-                }
-            },
-            leaderboards: {
-                visibleSection: 'week',
-                show: function(sectionToShow) {
-                    $scope.missioncontrol.leaderboards.visibleSection = sectionToShow;
-                }
+                $scope.$apply();
             }
-        }
-    }]);
-
-    missionControlApp.controller("searchController", ["$scope", "$rootScope", "missionControlService", function($scope, $rootScope, missionControlService) {
-
-        $scope.search = function() {
-
-            // Get query and broadcast
-            var currentQuery = $scope.currentSearch.toQuery();
-            $rootScope.$broadcast('startedSearching');
-
-            // Make request
-            missionControlService.search(currentQuery).then(function(response) {
-                $rootScope.$broadcast('finishedSearching', currentQuery.searchTerm);
-                $scope.searchResults = response.data;
-            });
         };
     }]);
 
-    missionControlApp.service("missionControlService", ["$http", function($http) {
-        this.search = function(currentQuery) {
-            return $http.post('/missioncontrol/search', { search: currentQuery });
+    aboutMissionControlApp.controller('aboutController', ["$scope", function($scope) {
+
+    }]);
+
+    aboutMissionControlApp.service("subscriptionService", ["$http", function($http) {
+        this.subscribe = function(token) {
+            return $http.post('/missioncontrol/payments/subscribe', { creditCardToken: token });
         };
+    }]);
+
+    aboutMissionControlApp.service("aboutMissionControlService", ["$http", function($http) {
     }]);
 })();
+
 /**
  * Workaround to make defining and retrieving angular modules easier and more intuitive.
  */
@@ -186,10 +92,283 @@
     };
 })(angular);
 (function() {
+    var collectionsApp = angular.module('app', []);
+
+    collectionsApp.controller("createCollectionController", ["$scope", "collectionService", "flashMessage", function($scope, collectionService, flashMessage) {
+        $scope.is = {
+            creatingCollection: false,
+            editingCollection: false,
+            deletingCollection: false,
+            mergingCollection: false
+        };
+
+        $scope.createCollection = function() {
+            $scope.is.creatingCollection = true;
+            collectionService.create($scope.newCollection).then(function() {
+                flashMessage.addError('Your collection could not be created.');
+            });
+        };
+
+        $scope.editCollection = function() {
+
+        };
+
+        $scope.deleteCollection = function() {
+
+        };
+
+        $scope.mergeCollection = function() {
+
+        };
+    }]);
+
+    collectionsApp.service("collectionService", ["$http", function($http) {
+        this.create = function(collection) {
+            $http.post('/missioncontrol/collections/create', collection).then(function(response) {
+                window.location.href = '/missioncontrol/collections/' + response.data.collection_id;
+            }, function(response) {
+                return response;
+            });
+        };
+
+        this.delete = function(collection) {
+            $http.delete('/missioncontrol/collections/' + collection.collection_id).then(function(response) {
+                window.location.href = '/missioncontrol/collections';
+            });
+        };
+
+        this.edit = function(collection) {
+            return $http.patch('/missioncontrol/collections/' + collection.collection_id, collection);
+        }
+    }]);
+})();
+
+(function() {
+    var dataViewApp = angular.module('app', []);
+
+    dataViewApp.controller('dataViewController', ['DataView', 'dataViewService', '$scope', '$http', function(DataView, dataViewService, $scope, $http) {
+        $scope.newDataView = new DataView();
+        $scope.dataViews = [];
+
+        $scope.create = function(dataViewToCreate) {
+            dataViewService.create(dataViewToCreate).then(function(response) {
+                $scope.newDataView = new DataView();
+            });
+        };
+
+        $scope.edit = function(dataViewToEdit) {
+            dataViewService.edit(dataViewToEdit).then(function(response) {
+
+            });
+        };
+
+        (function() {
+            $scope.data = {
+                bannerImages: laravel.bannerImages
+            };
+
+            laravel.dataViews.forEach(function(dataView) {
+                $scope.dataViews.push(new DataView(dataView));
+            });
+        })();
+    }]);
+
+    dataViewApp.service('dataViewService', ["$http", function($http) {
+        this.testQuery = function(query) {
+            var encodedQuery = encodeURIComponent(query);
+            return $http.get('/missioncontrol/dataviews/testquery?q=' + encodedQuery);
+        };
+
+        this.create = function(data) {
+            return $http.post('/missioncontrol/dataviews/create',{ dataView: data });
+        };
+
+        this.edit = function(data) {
+            return $http.post('/missioncontrol/dataviews/' + data.dataview_id + '/edit', { dataView: data });
+        };
+    }]);
+
+    dataViewApp.factory('DataView', ['dataViewService', function(dataViewService) {
+        return function(dataView) {
+
+            if (typeof dataView === 'undefined') {
+                var self = this
+            } else {
+                var self = dataView;
+            }
+
+            if (typeof dataView === 'undefined') {
+                self.column_titles = [];
+            }
+
+            self.addTitle = function(newTitle) {
+                if (typeof newTitle !== 'undefined' && newTitle != "") {
+                    self.column_titles.push(newTitle);
+                    self.newTitle = undefined;
+                }
+            };
+
+            self.deleteTitle = function() {
+
+            };
+
+            self.testQuery = function() {
+                dataViewService.testQuery(self.query).then(function(response) {
+                    self.testQueryOutput = response.data;
+                });
+            }
+        }
+    }]);
+
+})();
+(function() {
+    var editObjectApp = angular.module('app', []);
+
+    editObjectApp.controller("editObjectController", ["$scope", "editObjectService", function($scope, editObjectService) {
+
+        $scope.edit = function() {
+            editObjectService.edit($scope.object, $scope.metadata);
+        };
+
+        $scope.revert = function() {
+            editObjectService.revert($scope.object, $scope.selectedRevision);
+        };
+
+        (function() {
+            $scope.object = laravel.object;
+            $scope.revisions = laravel.revisions;
+        })();
+    }]);
+
+    editObjectApp.service("editObjectService", ["$http", function($http) {
+        this.edit = function(object, metadata) {
+            return $http.patch('/missioncontrol/objects/' + object.object_id + '/edit', {
+                metadata: metadata,
+                object: object
+            }).then(function(response) {
+                window.location.href = '/missioncontrol/objects/' + object.object_id;
+            });
+        };
+
+        this.revert = function(object, revertTo) {
+            return $http.patch('/missioncontrol/objects/' + object.object_id + '/revert/' + revertTo.object_revision_id).then(function(response) {
+                window.location.href = '/missioncontrol/objects/' + object.object_id;
+            });
+        };
+
+        this.addToCollection = function(object, collection) {
+
+        };
+    }]);
+})();
+(function() {
+    var userApp = angular.module('app', []);
+
+    userApp.controller("editUserController", ['$http', '$scope', 'editUserService', 'flashMessage', function($http, $scope, editUserService, flashMessage) {
+        $scope.isUpdating = {
+            profile: false,
+            emailNotifications: false,
+            SMSNotifications: false
+        };
+
+        $scope.username = laravel.user.username;
+
+        $scope.missions = laravel.missions;
+
+        $scope.patches = laravel.patches;
+
+        $scope.profile = {
+            summary: laravel.user.profile.summary,
+            twitter_account: laravel.user.profile.twitter_account,
+            reddit_account: laravel.user.profile.reddit_account,
+            favorite_quote: laravel.user.profile.favorite_quote,
+            favorite_mission: laravel.user.profile.favorite_mission,
+            favorite_patch: laravel.user.profile.favorite_patch
+        };
+
+        $scope.updateProfile = function() {
+            $scope.isUpdating.profile = true;
+            $http.patch('/users/' + $scope.username + '/edit', $scope.profile)
+                .then(function(response) {
+                    window.location = '/users/' + $scope.username;
+                });
+        };
+
+        $scope.emailNotifications = {
+            LaunchChange: laravel.notifications.LaunchChange,
+            NewMission: laravel.notifications.NewMission,
+            TMinus24HoursEmail: laravel.notifications.TMinus24HoursEmail,
+            TMinus3HoursEmail: laravel.notifications.TMinus3HoursEmail,
+            TMinus1HourEmail: laravel.notifications.TMinus1HourEmail,
+            NewsSummaries: laravel.notifications.NewsSummaries
+        };
+
+        $scope.updateEmailNotifications = function() {
+            $scope.isUpdating.emailNotifications = true;
+            editUserService.updateEmails($scope.username, $scope.emailNotifications).then(function() {
+                $scope.isUpdating.emailNotifications = false;
+            });
+        };
+
+        $scope.SMSNotification = {
+            mobile: laravel.user.mobile
+        };
+
+        if (laravel.notifications.TMinus24HoursSMS === true) {
+            $scope.SMSNotification.status = "TMinus24HoursSMS";
+        } else if (laravel.notifications.TMinus3HoursSMS === true) {
+            $scope.SMSNotification.status = "TMinus3HoursSMS";
+        } else if (laravel.notifications.TMinus1HourSMS === true) {
+            $scope.SMSNotification.status = "TMinus1HourSMS";
+        } else {
+            $scope.SMSNotification.status = "false";
+        }
+
+        $scope.updateSMSNotifications = function() {
+            $scope.isUpdating.SMSNotifications = true;
+            editUserService.updateSMS($scope.username, $scope.SMSNotification).then(function() {
+                $scope.isUpdating.SMSNotifications = false;
+            });
+        }
+
+    }]);
+
+    userApp.service('editUserService', ["$http", "flashMessage", function($http, flashMessage) {
+        this.updateSMS = function(username, notification) {
+            return $http.patch('/users/' + username + '/edit/smsnotifications',
+
+                { 'SMSNotification': notification }
+
+            ).then(function(response) {
+                return flashMessage.addOK(response.data);
+            }, function(response) {
+                return flashMessage.addError(response.data);
+            });
+        };
+
+        this.updateEmails = function(username, notification) {
+            return $http.patch('/users/' + username + '/edit/emailnotifications',
+
+                { 'emailNotifications': notification }
+
+            ).then(function(response) {
+                return flashMessage.addOK(response.data);
+            }, function(response) {
+                return flashMessage.addError(response.data);
+            });
+        };
+
+        this.updateProfile = function() {
+
+        };
+    }]);
+
+})();
+(function() {
     var app = angular.module('app', []);
 
     app.controller("futureMissionController", ['$http', '$scope', '$filter', 'flashMessage', function($http, $scope, $filter, flashMessage) {
-
+		$scope.mission = laravel.mission;
         $scope.missionSlug = laravel.mission.slug;
         $scope.launchSpecificity = laravel.mission.launch_specificity;
         $scope.isLaunchPaused = laravel.mission.launch_paused;
@@ -280,1274 +459,6 @@
         $scope.$watch('webcast.viewers', function(newValue) {
             $scope.webcast.publicViewers = ' (' + newValue + ' viewers)';
         });
-    }]);
-})();
-    (function() {
-    var uploadApp = angular.module('app', []);
-
-    uploadApp.controller("uploadAppController", ["$scope", function($scope) {
-        $scope.activeSection = "upload";
-        $scope.showRecentAdditions = true;
-
-        $scope.data = {
-            missions: laravel.missions,
-            tags: laravel.tags,
-            subtypes: {
-                images: [
-                    'Mission Patch',
-                    'Photo',
-                    'Chart',
-                    'Concept Art',
-                    'Screenshot',
-                    'Infographic',
-                    'News Summary',
-                    'Hazard Map'
-                ],
-                videos: [
-                    'Launch Video',
-                    'Press Conference'
-                ],
-                documents: [
-                    'Press Kit',
-                    'Cargo Manifest',
-                    'Weather Forecast',
-                    'License'
-                ]
-            },
-            publishers: laravel.publishers,
-            recentUploads: laravel.recentUploads
-        };
-
-        $scope.changeSection = function(section) {
-            $scope.activeSection = section;
-            $scope.showRecentAdditions = section == 'upload';
-        };
-
-        $scope.$on('hideSubmissionMethods', function() {
-            $scope.areSubmissionMethodsHidden = true;
-        });
-
-    }]);
-
-    uploadApp.controller("uploadController", ["$rootScope", "$scope", "objectFromFile", "uploadService", function($rootScope, $scope, objectFromFile, uploadService) {
-        $scope.activeUploadSection = "dropzone";
-        $scope.isSubmitting = false;
-        $scope.isUploading = false;
-        $scope.queuedFiles = 0;
-
-        $scope.currentVisibleFile = null;
-        $scope.isVisibleFile = function(file) {
-            return $scope.currentVisibleFile === file;
-        };
-        $scope.setVisibleFile = function(file) {
-            $scope.currentVisibleFile = file;
-        };
-
-        $scope.uploadCallback = function() {
-            $scope.isUploading = false;
-
-            // Once files have been successfully upload, convert to Objects
-            $scope.files.forEach(function(file, index) {
-                file = objectFromFile.create(file, index);
-
-                // Set the initial visible file
-                if (index === 0) {
-                    $scope.currentVisibleFile = file;
-                }
-            });
-
-            // Change the upload section
-            $scope.activeUploadSection = "data";
-            $rootScope.$broadcast('hideSubmissionMethods');
-            $scope.showRecentAdditions = false;
-            $scope.$apply();
-        };
-
-        $scope.optionalCollection = null;
-
-        $scope.fileSubmitButtonText = function(form) {
-            if (form.$invalid) {
-                return 'We need more info';
-            } else if ($scope.isSubmitting) {
-                return 'Submitting...';
-            } else {
-                return 'Submit';
-            }
-        };
-
-        $scope.fileSubmitButtonFunction = function() {
-            $scope.isSubmitting = true;
-            uploadService.postToMissionControl($scope.files, 'files', $scope.optionalCollection);
-        }
-    }]);
-
-    uploadApp.controller("postController", ["$scope", "uploadService", function($scope, uploadService) {
-
-        $scope.NSFcomment = {};
-        $scope.redditcomment = {};
-        $scope.pressrelease = {};
-        $scope.article = {};
-        $scope.tweet = {};
-
-        $scope.isSubmitting = false;
-
-        $scope.detectPublisher = function() {
-
-        };
-
-        $scope.postSubmitButtonText = function(form) {
-            if (form.$invalid) {
-                return 'We need more info';
-            } else if ($scope.isSubmitting) {
-                return 'Submitting...';
-            } else {
-                return 'Submit';
-            }
-        };
-
-        $scope.postSubmitButtonFunction = function() {
-            $scope.isSubmitting = true;
-            switch ($scope.postType) {
-                case 'NSFcomment': uploadService.postToMissionControl($scope.NSFcomment, 'NSFcomment'); break;
-                case 'redditcomment': uploadService.postToMissionControl($scope.redditcomment, 'redditcomment'); break;
-                case 'pressrelease' : uploadService.postToMissionControl($scope.pressrelease, 'pressrelease'); break;
-                case 'article': uploadService.postToMissionControl($scope.article, 'article'); break;
-                case 'tweet': uploadService.postToMissionControl($scope.tweet, 'tweet'); break;
-            }
-        }
-    }]);
-
-    uploadApp.controller("writeController", ["$scope", "uploadService", function($scope, uploadService) {
-
-        $scope.text = {
-            title: null,
-            summary: null,
-            mission_id: null,
-            anonymous: null,
-            tags: []
-        };
-
-        $scope.isSubmitting = false;
-
-        $scope.writeSubmitButtonText = function(form) {
-            if (form.$invalid) {
-                return 'We need more info';
-            } else if ($scope.isSubmitting) {
-                return 'Submitting...';
-            } else {
-                return 'Submit';
-            }
-        };
-
-        $scope.writeSubmitButtonFunction = function() {
-            $scope.isSubmitting = true;
-            uploadService.postToMissionControl($scope.text, 'text');
-        }
-    }]);
-
-    uploadApp.service('uploadService', ['$http', 'CSRF_TOKEN', 'flashMessage', function($http, CSRF_TOKEN, flashMessage) {
-        this.postToMissionControl = function(dataToUpload, resourceType, collection) {
-            var submissionData = {
-                data: dataToUpload,
-                collection: collection,
-                type: resourceType,
-                _token: CSRF_TOKEN
-            };
-
-            if (resourceType == 'files') {
-                submitFiles(submissionData).then(redirect, error);
-            } else if (["article", "pressrelease", "tweet", "redditcomment", "NSFcomment"].indexOf(resourceType) !== -1) {
-                submitPost(submissionData).then(redirect, error);
-            } else if (resourceType == "text") {
-                submitWriting(submissionData).then(redirect, error);
-            }
-        };
-
-        var submitFiles = function(submissionData) {
-            return $http.put('/missioncontrol/create/submit/files', submissionData);
-        };
-
-        var submitPost = function(submissionData) {
-            return $http.put('/missioncontrol/create/submit/post', submissionData);
-        };
-
-        var submitWriting = function(submissionData) {
-            return $http.put('/missioncontrol/create/submit/writing', submissionData);
-        };
-
-        var redirect = function(response) {
-            window.location = '/missioncontrol';
-        };
-
-        var error = function(response) {
-            flashMessage.addError(response.data.errors);
-        };
-    }]);
-
-    uploadApp.factory("Image", function() {
-        return function (image, index) {
-            var self = image;
-
-            self.index = index;
-
-            self.title = null;
-            self.summary = null;
-            self.subtype = null;
-            self.mission_id = null;
-            self.author = null;
-            self.attribution = null;
-            self.anonymous = null;
-            self.tags = [];
-
-            self.datetimeExtractedFromEXIF = angular.isDefined(self.originated_at) ? true : false;
-
-            return self;
-        }
-    });
-
-    uploadApp.factory("GIF", function() {
-        return function(gif, index) {
-            var self = gif;
-
-            self.index = index;
-
-            self.title = null;
-            self.summary = null;
-            self.subtype = null;
-            self.mission_id = null;
-            self.author = null;
-            self.attribution = null;
-            self.anonymous = null;
-            self.tags = [];
-            self.originated_at = null;
-
-            return self;
-        }
-    });
-
-    uploadApp.factory("Audio", function() {
-        return function(audio, index) {
-            var self = audio;
-
-            self.index = index;
-
-            self.title = null;
-            self.summary = null;
-            self.subtype = null;
-            self.mission_id = null;
-            self.author = null;
-            self.attribution = null;
-            self.anonymous = null;
-            self.tags = [];
-            self.originated_at = null;
-
-            return self;
-        }
-    });
-
-    uploadApp.factory("Video", function() {
-        return function(video, index) {
-            var self = video;
-
-            self.index = index;
-
-            self.title = null;
-            self.summary = null;
-            self.external_url = null;
-            self.subtype = null;
-            self.mission_id = null;
-            self.author = null;
-            self.attribution = null;
-            self.anonymous = null;
-            self.tags = [];
-            self.originated_at = null;
-
-            return self;
-        }
-    });
-
-    uploadApp.factory("Document", function() {
-        return function(document, index) {
-            var self = document;
-
-            self.index = index;
-
-            self.title = null;
-            self.summary = null;
-            self.subtype = null;
-            self.mission_id = null;
-            self.author = null;
-            self.attribution = null;
-            self.anonymous = null;
-            self.tags = [];
-            self.originated_at = null;
-
-            return self;
-        }
-    });
-
-    uploadApp.service("objectFromFile", ["Image", "GIF", "Audio", "Video", "Document", function(Image, GIF, Audio, Video, Document) {
-        this.create = function(file, index) {
-            switch(file.type) {
-                case 'Image': return new Image(file, index);
-                case 'GIF': return new GIF(file, index);
-                case 'Audio': return new Audio(file, index);
-                case 'Video': return new Video(file, index);
-                case 'Document': return new Document(file, index);
-                default: return null;
-            }
-        }
-    }]);
-})();
-(function() {
-    var questionsApp = angular.module('app', []);
-
-    questionsApp.controller("questionsController", ["$scope", "questionService", function($scope, questionService) {
-
-        $scope.clearPinnedQuestion = function() {
-            history.replaceState('', document.title, window.location.pathname);
-            $scope.pinnedQuestion = null;
-        };
-
-        $scope.pinQuestion = function(question) {
-            history.replaceState('', document.title, '#' + question.slug);
-            $scope.pinnedQuestion = question;
-        };
-
-        (function() {
-            questionService.get().then(function(questions) {
-                $scope.questions = questions;
-
-                // Set the pinned question if one is present
-                if (window.location.hash) {
-                    $scope.pinnedQuestion = $scope.questions.filter(function(q) {
-                        return window.location.hash.substring(1) == q.slug;
-                    })[0];
-                } else {
-                    $scope.pinnedQuestion = null;
-                }
-
-            });
-        })();
-    }]);
-
-    questionsApp.service("questionService", ["$http", "Question", function($http, Question) {
-        this.get = function() {
-            return $http.get('/faq/get').then(function(response) {
-                return response.data.map(function(question) {
-                    return new Question(question);
-                });
-            });
-        };
-    }]);
-
-    questionsApp.factory("Question", function() {
-        return function(question) {
-            var self = question;
-
-            self.slug = question.question.toLowerCase()
-                .replace(/[^\w ]+/g,'')
-                .replace(/ +/g,'-');
-
-            return self;
-        };
-    });
-
-})();
-(function() {
-	var publisherApp = angular.module('app', []);
-
-	publisherApp.controller('publishersController', ["$scope", "publisherService", "flashMessage", function($scope, publisherService, flashMessage) {
-        $scope.publishers = laravel.publishers;
-        $scope.isCreatingPublisher = $scope.isEditingPublisher = false;
-
-        $scope.editPublisher = function(publisher) {
-            $scope.isEditingPublisher = true;
-            publisherService.edit(publisher).then(function(response) {
-                publisher = response.data;
-                $scope.isEditingPublisher = false;
-                flashMessage.addOK("Publisher " + publisher.name + " edited");
-            });
-        };
-
-        $scope.createPublisher = function(publisher, form) {
-            $scope.isCreatingPublisher = true;
-            publisherService.create(publisher).then(function(response) {
-                $scope.publishers.unshift(response.data);
-                $scope.isCreatingPublisher = false;
-
-                flashMessage.addOK("Publisher " + publisher.name + " created");
-                $scope.newPublisher = null;
-                form.$setUntouched();
-
-            }, function(response) {
-                $scope.isCreatingPublisher = false;
-                flashMessage.addError("That publisher already exists");
-            });
-        };
-
-        $scope.deletePublisher = function(publisher) {
-            $scope.isDeletingPublisher = true;
-            publisherService.delete(publisher).then(function(response) {
-                $scope.isDeletingPublisher = false;
-                flashMessage.addOK("Publisher " + publisher.name + " deleted");
-            });
-        }
-	}]);
-
-    publisherApp.service('publisherService', ["$http", function($http) {
-        this.create = function(publisher) {
-            return $http.post('/missioncontrol/publishers/create', {publisher: publisher});
-        };
-
-        this.edit = function(publisher) {
-            return $http.patch('/missioncontrol/publishers/' + publisher.publisher_id, {publisher: publisher});
-        };
-
-        this.delete = function(publisher) {
-            return $http.delete('/missioncontrol/publishers/' + publisher.publisher_id);
-        };
-    }]);
-})();
-(function() {
-    var reviewApp = angular.module('app', []);
-
-    reviewApp.controller("reviewController", ["$scope", 'reviewService', function($scope, reviewService) {
-        $scope.isLoading = true;
-        $scope.objectsToReview = [];
-
-        $scope.visibilities = ['Default', 'Public', 'Hidden'];
-
-        $scope.action = function(object, status) {
-
-            object.status = status;
-
-            if (status == 'Published') {
-                object.isBeingPublished = true;
-            } else if (status == 'Deleted') {
-                object.isBeingDeleted = true;
-            }
-
-            reviewService.review(object).then(function() {
-                $scope.objectsToReview.splice($scope.objectsToReview.indexOf(object), 1);
-
-            }, function(response) {
-                alert('An error occurred');
-                console.log(response);
-            })
-        };
-
-        $scope.reviewPageSubheading = function() {
-            if ($scope.isLoading) {
-                return 'Loading Queued Objects...';
-            } else {
-                if (angular.isDefined($scope.objectsToReview))
-                    return '<span>' + $scope.objectsToReview.length + '</span> objects to review';
-            }
-        };
-
-        (function() {
-            reviewService.fetch().then(function(response) {
-                console.log(response);
-                $scope.objectsToReview = response;
-                $scope.isLoading = false;
-            });
-        })();
-    }]);
-
-    reviewApp.service('reviewService', ["$http", "ObjectToReview", function($http, ObjectToReview) {
-        this.fetch = function() {
-            return $http.get('/missioncontrol/review/get').then(function(response) {
-
-                return response.data.map(function(objectToReview) {
-                    return new ObjectToReview(objectToReview);
-                });
-            });
-        };
-
-        this.review = function(object) {
-            return $http.post('/missioncontrol/review/update/' + object.object_id, {
-                visibility: object.visibility, status: object.status
-            });
-        };
-    }]);
-
-    reviewApp.factory("ObjectToReview", function() {
-        return function (object) {
-            var self = object;
-
-            self.visibility = "Default";
-
-            self.linkToObject = '/missioncontrol/object/' + self.object_id;
-            self.linkToUser = '/users/' + self.user.username;
-
-            self.createdAtRelative = moment.utc(self.created_at).fromNow();
-
-            self.size = self.size / 1000 + ' KB';
-
-            self.isBeingPublished = false;
-            self.isBeingDeleted = false;
-
-            return self;
-        }
-    });
-})();
-(function() {
-    var objectApp = angular.module('app', ['ui.tree', 'ngSanitize'], function($rootScopeProvider) {
-        $rootScopeProvider.digestTtl(20);
-    });
-
-    objectApp.controller("objectController", ["$scope", "$http", function($scope, $http) {
-
-        $scope.note = laravel.userNote !== null ? laravel.userNote.note : "";
-        $scope.object = laravel.object;
-
-        $scope.$watch("note", function(noteValue) {
-            if (noteValue === "" || noteValue === null) {
-                $scope.noteButtonText = "Create Note";
-                $scope.noteReadText = '<p class="exclaim">Create a note!</p>';
-            } else {
-                $scope.noteButtonText = "Edit Note";
-                $scope.noteReadText = noteValue;
-            }
-        });
-
-        $scope.noteState = "read";
-        $scope.changeNoteState = function() {
-
-            $scope.originalNote = $scope.note;
-
-            if ($scope.noteState == "read") {
-                $scope.noteState = "write";
-            } else {
-                $scope.noteState = "read";
-            }
-        };
-
-        $scope.saveNote = function() {
-            if ($scope.originalNote === "") {
-
-                $http.post('/missioncontrol/objects/' + $scope.object.object_id + '/note', {
-                    note: $scope.note
-                }).then(function() {
-                    $scope.changeNoteState();
-                });
-
-            } else {
-
-                $http.patch('/missioncontrol/objects/' + $scope.object.object_id + '/note', {
-                    note: $scope.note
-                }).then(function() {
-                    $scope.changeNoteState();
-                });
-            }
-        };
-
-        $scope.deleteNote = function() {
-            $http.delete('/missioncontrol/objects/' + $scope.object.object_id + '/note')
-                .then(function() {
-                    $scope.note = "";
-                    $scope.changeNoteState();
-                });
-        };
-
-        /* FAVORITES */
-        $scope.favorites = laravel.totalFavorites;
-
-        $scope.$watch("favorites", function(newFavoritesValue) {
-            if (newFavoritesValue == 1) {
-                $scope.favoritesText = "1 Favorite";
-            }  else {
-                $scope.favoritesText = $scope.favorites + " Favorites";
-            }
-        });
-
-        $scope.isFavorited = laravel.isFavorited !== null;
-        $scope.toggleFavorite = function() {
-
-            $scope.isFavorited = !$scope.isFavorited;
-
-            if ($scope.isFavorited === true) {
-
-                var requestType = 'POST';
-                $scope.favorites++;
-                $http.post('/missioncontrol/objects/' + $scope.object.object_id + '/favorite');
-
-            } else if ($scope.isFavorited === false) {
-
-                var requestType = 'DELETE';
-                $scope.favorites--;
-                $http.delete('/missioncontrol/objects/' + $scope.object.object_id + '/favorite');
-
-            }
-        };
-
-        /* DOWNLOAD */
-        $scope.incrementDownloads = function() {
-            $http.get('/missioncontrol/objects/' + $scope.object.object_id + '/download');
-        }
-
-    }]);
-
-    objectApp.controller('commentsController', ["$scope", "commentService", "Comment", "flashMessage", function($scope, commentService, Comment, flashMessage) {
-        $scope.object = laravel.object;
-        $scope.commentsAreLoaded = false;
-        $scope.isAddingTopLevelComment = false;
-
-        $scope.addTopLevelComment = function(form) {
-            $scope.isAddingTopLevelComment = true;
-            commentService.addTopLevel($scope.object, $scope.newComment).then(function(response) {
-                $scope.isAddingTopLevelComment = false;
-                $scope.comments.push(new Comment(response.data));
-                $scope.newComment = null;
-                form.$setUntouched();
-                    flashMessage.addOK('Comment submitted');
-            },
-            function(response) {
-                $scope.isAddingTopLevelComment = false;
-                flashMessage.addError('Comment could not be submitted. Try again or contact us.');
-            });
-        };
-
-        (function() {
-            commentService.get($scope.object).then(function(response) {
-                $scope.comments = response.data.map(function(comment) {
-                    return new Comment(comment);
-                });
-                $scope.commentsAreLoaded = true;
-            });
-        })();
-
-    }]);
-
-    objectApp.service("noteService", ["$http", function($http) {
-
-    }]);
-
-    objectApp.service("favoriteService", ["$http", function($http) {
-
-    }]);
-
-    objectApp.service("commentService", ["$http",
-        function($http) {
-
-            this.get = function (object) {
-                return $http.get('/missioncontrol/objects/' + object.object_id + '/comments');
-            };
-
-            this.addTopLevel = function(object, comment) {
-                return $http.post('/missioncontrol/objects/' + object.object_id + '/comments/create', { comment: {
-                    comment: comment,
-                    parent: null
-                }});
-            };
-
-            this.addReply = function(object, reply, parent) {
-                return $http.post('/missioncontrol/objects/' + object.object_id + '/comments/create', { comment: {
-                    comment: reply,
-                    parent: parent.comment_id
-                }});
-            };
-
-            this.delete = function(object, comment) {
-                return $http.delete('/missioncontrol/objects/' + object.object_id + '/comments/' + comment.comment_id);
-            };
-
-            this.edit = function(object, comment) {
-                return $http.patch('/missioncontrol/objects/' + object.object_id + '/comments/' + comment.comment_id, { comment: {
-                    comment: comment.editText
-                }});
-            };
-        }
-    ]);
-
-    objectApp.factory("Comment", ["commentService", function(commentService) {
-        function Comment(comment) {
-            var self = comment;
-
-            if (typeof self.children === 'undefined') {
-                self.children = [];
-            }
-
-            self.isReplying = false;
-            self.isEditing = false;
-            self.isDeleting = false;
-
-            self.isSending = {
-                reply: false,
-                edit: false,
-                deletion: false
-            };
-
-            self.toggleReplyState = function() {
-                if (!self.isReplying) {
-                    self.isReplying = true;
-                    self.isEditing = self.isDeleting = false;
-                } else {
-                    self.isReplying = false;
-                }
-            };
-
-            self.toggleEditState = function() {
-                if (!self.isEditing) {
-                    self.isEditing = true;
-                    self.isReplying = self.isDeleting = false;
-                } else {
-                    self.isEditing = false;
-                }
-            };
-
-            self.toggleDeleteState = function() {
-                if (!self.isDeleting) {
-                    self.isDeleting = true;
-                    self.isReplying = self.isEditing = false;
-                } else {
-                    self.isDeleting = false;
-                }
-            };
-
-            self.editText = self.comment;
-
-            self.reply = function() {
-                self.isSending.reply = true;
-                commentService.addReply(laravel.object, self.replyText, self).then(function(response) {
-                    self.replyText = null;
-                    self.isReplying = self.isSending.reply = false;
-
-                    self.children.push(new Comment(response.data));
-                });
-            };
-
-            self.edit = function() {
-                self.isSending.edit = true;
-                commentService.edit(laravel.object, self).then(function(response) {
-                    self.comment_md = response.data.comment_md;
-                    self.comment = self.editText;
-                    self.editText = null;
-                    self.isEditing = self.isSending.edit = false;
-                });
-            };
-
-            self.delete = function(scope) {
-                self.isSending.deletion = true;
-                commentService.delete(laravel.object, self).then(function() {
-                    self.comment = self.comment_md = null;
-                    self.isDeleting = self.isSending.deletion = false;
-
-                    // If the comment has no children, remove it entirely. Otherwise, just show [deleted], similar to Reddit
-                    if (self.children.length === 0) {
-                        scope.$parent.remove();
-                    } else {
-                        self.isHidden = true;
-                    }
-                });
-            };
-
-            self.children = self.children.map(function(reply) {
-                return new Comment(reply);
-            });
-
-            return self;
-        }
-
-        return Comment;
-    }]);
-})();
-(function() {
-    var app = angular.module('app', []);
-
-    app.controller("missionController", ['$scope', 'missionService', function($scope, missionService) {
-        // Scope the possible form data info
-        $scope.data = {
-            parts: laravel.parts,
-            spacecraft: laravel.spacecraft,
-            destinations: laravel.destinations,
-            missionTypes: laravel.missionTypes,
-            launchSites: laravel.launchSites,
-            landingSites: laravel.landingSites,
-            vehicles: laravel.vehicles,
-            astronauts: laravel.astronauts,
-
-            launchVideos: laravel.launchVideos ? laravel.launchVideos : null,
-            missionPatches: laravel.missionPatches ? laravel.missionPatches : null,
-            pressKits: laravel.pressKits ? laravel.pressKits : null,
-            cargoManifests: laravel.cargoManifests ? laravel.cargoManifests : null,
-            pressConferences: laravel.pressConferences ? laravel.pressConferences : null,
-            featuredImages: laravel.featuredImages ? laravel.featuredImages: null,
-
-            firstStageEngines: ['Merlin 1A', 'Merlin 1B', 'Merlin 1C', 'Merlin 1D'],
-            upperStageEngines: ['Kestrel', 'Merlin 1C-Vac', 'Merlin 1D-Vac'],
-            upperStageStatuses: ['Did not reach orbit', 'Decayed', 'Deorbited', 'Earth Orbit', 'Solar Orbit'],
-            spacecraftTypes: ['Dragon 1', 'Dragon 2'],
-            returnMethods: ['Splashdown', 'Landing', 'Did Not Return'],
-            eventTypes: ['Wet Dress Rehearsal', 'Static Fire'],
-            launchIlluminations: ['Day', 'Night', 'Twilight'],
-            statuses: ['Upcoming', 'Complete', 'In Progress'],
-            outcomes: ['Failure', 'Success'],
-			specificities: [
-				{'value' : 0, 'text' : 'Year'},
-				{'value' : 1, 'text' : 'Half'},
-				{'value' : 2, 'text' : 'Subyear'},
-				{'value' : 3, 'text' : 'Quarter'},
-				{'value' : 4, 'text' : 'Month'},
-				{'value' : 5, 'text' : 'Submonth'},
-				{'value' : 6, 'text' : 'Day'},
-				{'value' : 7, 'text' : 'Precise'}	
-			]
-        };
-
-        $scope.filters = {
-            parts: {
-                type: ''
-            }
-        };
-
-        $scope.mission = {
-            data: laravel.mission,
-            make: function() {
-                missionService.make($scope.mission.data);
-            }
-        };
-    }]);
-
-    app.service("missionService", ["$http", "CSRF_TOKEN", function($http, CSRF_TOKEN) {
-        this.make = function(mission) {
-            if (mission.mission_id == null) {
-                return $http.post('/missions/create', {
-                    mission: mission,
-                    _token: CSRF_TOKEN
-                }).then(function (response) {
-                    window.location = '/missions/' + response.data;
-                });
-            } else {
-                return $http.patch('/missions/' + mission.slug + '/edit', {
-                    mission: mission,
-                    _token: CSRF_TOKEN
-                }).then(function(response){
-					console.log(response);
-				});;
-            }
-        };
-    }]);
-})();
-(function() {
-    var aboutMissionControlApp = angular.module('app', ['credit-cards']);
-
-    aboutMissionControlApp.controller("subscriptionController", ["$scope", "subscriptionService", function($scope, subscriptionService) {
-        $scope.subscriptionButtonText = "Pay $9";
-        $scope.subscriptionState = {
-            isLooking: true,
-            isEnteringDetails: false,
-            isSubscribing: false,
-            hasSubscribed: false,
-            failed: false
-        };
-
-        $scope.subscription = {
-            showSubscribeForm: function() {
-                $scope.subscriptionState.isLooking = false;
-                $scope.subscriptionState.isEnteringDetails = true;
-            },
-            subscribe: function($event) {
-                $scope.subscriptionState.isEnteringDetails =  $scope.subscriptionState.failed = false;
-                $scope.subscriptionState.isSubscribing = true;
-                $scope.subscriptionButtonText = "You're awesome";
-
-                var form = $('form[name="subscribeForm"]');
-                Stripe.card.createToken(form, $scope.subscription.stripeResponseHandler);
-            },
-            stripeResponseHandler: function(stripeStatus, stripeResponse) {
-
-                if (stripeResponse.error) {
-                    $scope.subscriptionState.isSubscribing = false;
-                    $scope.subscriptionState.isEnteringDetails = $scope.subscriptionState.failed = true;
-                } else {
-                    // Fetch the token from Stripe's response.
-                    var token = stripeResponse.id;
-
-                    // Subscribe
-                    subscriptionService.subscribe(token).then(function() {
-                        // Success!
-                        $scope.subscriptionState.isSubscribing = false;
-                        $scope.subscriptionState.hasSubscribed = true;
-                    });
-                }
-
-                $scope.$apply();
-            }
-        };
-    }]);
-
-    aboutMissionControlApp.controller('aboutController', ["$scope", function($scope) {
-
-    }]);
-
-    aboutMissionControlApp.service("subscriptionService", ["$http", function($http) {
-        this.subscribe = function(token) {
-            return $http.post('/missioncontrol/payments/subscribe', { creditCardToken: token });
-        };
-    }]);
-
-    aboutMissionControlApp.service("aboutMissionControlService", ["$http", function($http) {
-    }]);
-})();
-
-(function() {
-    var dataViewApp = angular.module('app', []);
-
-    dataViewApp.controller('dataViewController', ['DataView', 'dataViewService', '$scope', '$http', function(DataView, dataViewService, $scope, $http) {
-        $scope.newDataView = new DataView();
-        $scope.dataViews = [];
-
-        $scope.create = function(dataViewToCreate) {
-            dataViewService.create(dataViewToCreate).then(function(response) {
-                $scope.newDataView = new DataView();
-            });
-        };
-
-        $scope.edit = function(dataViewToEdit) {
-            dataViewService.edit(dataViewToEdit).then(function(response) {
-
-            });
-        };
-
-        (function() {
-            $scope.data = {
-                bannerImages: laravel.bannerImages
-            };
-
-            laravel.dataViews.forEach(function(dataView) {
-                $scope.dataViews.push(new DataView(dataView));
-            });
-        })();
-    }]);
-
-    dataViewApp.service('dataViewService', ["$http", function($http) {
-        this.testQuery = function(query) {
-            var encodedQuery = encodeURIComponent(query);
-            return $http.get('/missioncontrol/dataviews/testquery?q=' + encodedQuery);
-        };
-
-        this.create = function(data) {
-            return $http.post('/missioncontrol/dataviews/create',{ dataView: data });
-        };
-
-        this.edit = function(data) {
-            return $http.post('/missioncontrol/dataviews/' + data.dataview_id + '/edit', { dataView: data });
-        };
-    }]);
-
-    dataViewApp.factory('DataView', ['dataViewService', function(dataViewService) {
-        return function(dataView) {
-
-            if (typeof dataView === 'undefined') {
-                var self = this
-            } else {
-                var self = dataView;
-            }
-
-            if (typeof dataView === 'undefined') {
-                self.column_titles = [];
-            }
-
-            self.addTitle = function(newTitle) {
-                if (typeof newTitle !== 'undefined' && newTitle != "") {
-                    self.column_titles.push(newTitle);
-                    self.newTitle = undefined;
-                }
-            };
-
-            self.deleteTitle = function() {
-
-            };
-
-            self.testQuery = function() {
-                dataViewService.testQuery(self.query).then(function(response) {
-                    self.testQueryOutput = response.data;
-                });
-            }
-        }
-    }]);
-
-})();
-(function() {
-    var app = angular.module('app', []);
-
-    app.controller('pastMissionController', ["$scope", "missionDataService", "telemetryPlotCreator", "ephemerisPlotCreator", function($scope, missionDataService, telemetryPlotCreator, ephemerisPlotCreator) {
-        $scope.mission = laravel.mission;
-
-        (function() {
-            missionDataService.telemetry($scope.mission.slug).then(function(response) {
-                $scope.telemetryPlots = {
-                    altitudeVsTime:         telemetryPlotCreator.altitudeVsTime(response.data),
-                    altitudeVsDownrange:    telemetryPlotCreator.altitudeVsDownrange(response.data),
-                    velocityVsTime:         telemetryPlotCreator.velocityVsTime(response.data),
-                    downrangeVsTime:        telemetryPlotCreator.downrangeVsTime(response.data)
-                }
-            });
-            missionDataService.orbitalElements($scope.mission.slug).then(function(response) {
-                $scope.orbitalPlots = {
-                    apogeeVsTime:           ephemerisPlotCreator.apogeeVsTime(response.data),
-                    perigeeVsTime:          ephemerisPlotCreator.perigeeVsTime(response.data),
-                    inclinationVsTime:      ephemerisPlotCreator.inclinationVsTime(response.data)
-                }
-            });
-        })();
-    }]);
-
-    app.service('telemetryPlotCreator', [function() {
-        this.altitudeVsTime = function(telemetryCollection) {
-            return {
-                data: telemetryCollection.filter(function(telemetry) {
-                    return telemetry.altitude != null;
-                }).map(function(telemetry) {
-                    return { timestamp: telemetry.timestamp, altitude: telemetry.altitude };
-                }),
-                settings: {
-                    extrapolation: true,
-                    interpolation: 'cardinal',
-                    xAxis: {
-                        type: 'linear',
-                        key: 'timestamp',
-                        title: 'Time (T+s)'
-                    },
-                    yAxis: {
-                        type: 'linear',
-                        key: 'altitude',
-                        title: 'Altitude (km)',
-                        formatter: function(d) {
-                            return d / 1000;
-                        }
-                    },
-                    chartTitle: 'Altitude vs. Time'
-                }
-            }
-        };
-
-        this.altitudeVsDownrange = function(telemetryCollection) {
-            return {
-                data: telemetryCollection.filter(function(telemetry) {
-                    return (telemetry.downrange != null && telemetry.altitude != null);
-                }).map(function(telemetry) {
-                    return { downrange: telemetry.downrange, altitude: telemetry.altitude };
-                }),
-                settings: {
-                    extrapolation: true,
-                    interpolation: 'cardinal',
-                    xAxis: {
-                        type: 'linear',
-                        key: 'downrange',
-                        title: 'Downrange Distance (km)',
-                        formatter: function(d) {
-                            return d / 1000;
-                        }
-                    },
-                    yAxis: {
-                        type: 'linear',
-                        key: 'altitude',
-                        title: 'Altitude (km)',
-                        formatter: function(d) {
-                            return d / 1000;
-                        }
-                    },
-                    chartTitle: 'Altitude vs. Downrange Distance'
-                }
-            }
-        };
-
-        this.velocityVsTime = function(telemetryCollection) {
-            return {
-                data: telemetryCollection.filter(function(telemetry) {
-                    return telemetry.velocity != null;
-                }).map(function(telemetry) {
-                    return { timestamp: telemetry.timestamp, velocity: telemetry.velocity };
-                }),
-                settings: {
-                    extrapolation: true,
-                    interpolation: 'cardinal',
-                    xAxis: {
-                        type: 'linear',
-                        key: 'timestamp',
-                        title: 'Time (T+s)'
-                    },
-                    yAxis: {
-                        type: 'linear',
-                        key: 'velocity',
-                        title: 'Velocity (m/s)'
-                    },
-                    chartTitle: 'Velocity vs. Time'
-                }
-            }
-        };
-
-        this.downrangeVsTime = function(telemetryCollection) {
-            return {
-                data: telemetryCollection.filter(function(telemetry) {
-                    return telemetry.downrange != null;
-                }).map(function(telemetry) {
-                    return { timestamp: telemetry.timestamp, downrange: telemetry.downrange };
-                }),
-                settings: {
-                    extrapolation: true,
-                    interpolation: 'cardinal',
-                    xAxis: {
-                        type: 'linear',
-                        key: 'timestamp',
-                        title: 'Time (T+s)'
-                    },
-                    yAxis: {
-                        type: 'linear',
-                        key: 'downrange',
-                        title: 'Downrange Distance (km)',
-                        formatter: function(d) {
-                            return d / 1000;
-                        }
-                    },
-                    chartTitle: 'Downrange Distance vs. Time'
-                }
-            }
-        };
-    }]);
-
-    app.service('ephemerisPlotCreator', [function() {
-        this.apogeeVsTime = function(orbitalElements) {
-            return {
-                data: orbitalElements.map(function(orbitalElement) {
-                        return {
-                            timestamp: orbitalElement.epoch,
-                            apogee: orbitalElement.apogee
-                        };
-                }),
-                settings: {
-                    extrapolation: false,
-                    interpolation: 'linear',
-                    xAxis: {
-                        type: 'timescale',
-                        key: 'timestamp',
-                        title: 'Epoch Date',
-                        ticks: 10,
-                        formatter: function(d) {
-                            return moment(d).format('MMM D, YYYY');
-                        }
-                    },
-                    yAxis: {
-                        type: 'linear',
-                        key: 'apogee',
-                        title: 'Apogee (km)',
-                        formatter: function(d) {
-                            return Math.round(d * 10) / 10; // Round to 1dp
-                        }
-                    },
-                    chartTitle: 'Apogee (km) vs. Time'
-                }
-            }
-        };
-
-        this.perigeeVsTime = function(orbitalElements) {
-            return {
-                data: orbitalElements.map(function(orbitalElement) {
-                    return {
-                        timestamp: orbitalElement.epoch,
-                        perigee: orbitalElement.perigee
-                    };
-                }),
-                settings: {
-                    extrapolation: false,
-                    interpolation: 'linear',
-                    xAxis: {
-                        type: 'timescale',
-                        key: 'timestamp',
-                        title: 'Epoch Date',
-                        ticks: 10,
-                        formatter: function(d) {
-                            return moment(d).format('MMM D, YYYY');
-                        }
-                    },
-                    yAxis: {
-                        type: 'linear',
-                        key: 'perigee',
-                        title: 'Perigee (km)',
-                        formatter: function(d) {
-                            return Math.round(d * 10) / 10; // Round to 1dp
-                        }
-                    },
-                    chartTitle: 'Perigee (km) vs. Time'
-                }
-            }
-        };
-
-        this.inclinationVsTime = function(orbitalElements) {
-            return {
-                data: orbitalElements.map(function(orbitalElement) {
-                    return {
-                        timestamp: orbitalElement.epoch,
-                        inclination: orbitalElement.perigee
-                    };
-                }),
-                settings: {
-                    extrapolation: false,
-                    interpolation: 'linear',
-                    xAxis: {
-                        type: 'timescale',
-                        key: 'timestamp',
-                        title: 'Epoch Date',
-                        ticks: 10,
-                        formatter: function(d) {
-                            return moment(d).format('MMM D, YYYY');
-                        }
-                    },
-                    yAxis: {
-                        type: 'linear',
-                        key: 'inclination',
-                        title: 'Inclination (km)',
-                        formatter: function(d) {
-                            return Math.round(d * 10) / 10 + '°'; // Round to 1dp
-                        }
-                    },
-                    chartTitle: 'Inclination (°) vs. Time'
-                }
-            }
-        };
-    }]);
-})();
-(function() {
-    var editObjectApp = angular.module('app', []);
-
-    editObjectApp.controller("editObjectController", ["$scope", "editObjectService", function($scope, editObjectService) {
-
-        $scope.edit = function() {
-            editObjectService.edit($scope.object, $scope.metadata);
-        };
-
-        $scope.revert = function() {
-            editObjectService.revert($scope.object, $scope.selectedRevision);
-        };
-
-        (function() {
-            $scope.object = laravel.object;
-            $scope.revisions = laravel.revisions;
-        })();
-    }]);
-
-    editObjectApp.service("editObjectService", ["$http", function($http) {
-        this.edit = function(object, metadata) {
-            return $http.patch('/missioncontrol/objects/' + object.object_id + '/edit', {
-                metadata: metadata,
-                object: object
-            }).then(function(response) {
-                window.location.href = '/missioncontrol/objects/' + object.object_id;
-            });
-        };
-
-        this.revert = function(object, revertTo) {
-            return $http.patch('/missioncontrol/objects/' + object.object_id + '/revert/' + revertTo.object_revision_id).then(function(response) {
-                window.location.href = '/missioncontrol/objects/' + object.object_id;
-            });
-        };
-
-        this.addToCollection = function(object, collection) {
-
-        };
     }]);
 })();
 (function() {
@@ -1722,58 +633,6 @@
         }
     }]);
 })();
-(function() {
-    var collectionsApp = angular.module('app', []);
-
-    collectionsApp.controller("createCollectionController", ["$scope", "collectionService", "flashMessage", function($scope, collectionService, flashMessage) {
-        $scope.is = {
-            creatingCollection: false,
-            editingCollection: false,
-            deletingCollection: false,
-            mergingCollection: false
-        };
-
-        $scope.createCollection = function() {
-            $scope.is.creatingCollection = true;
-            collectionService.create($scope.newCollection).then(function() {
-                flashMessage.addError('Your collection could not be created.');
-            });
-        };
-
-        $scope.editCollection = function() {
-
-        };
-
-        $scope.deleteCollection = function() {
-
-        };
-
-        $scope.mergeCollection = function() {
-
-        };
-    }]);
-
-    collectionsApp.service("collectionService", ["$http", function($http) {
-        this.create = function(collection) {
-            $http.post('/missioncontrol/collections/create', collection).then(function(response) {
-                window.location.href = '/missioncontrol/collections/' + response.data.collection_id;
-            }, function(response) {
-                return response;
-            });
-        };
-
-        this.delete = function(collection) {
-            $http.delete('/missioncontrol/collections/' + collection.collection_id).then(function(response) {
-                window.location.href = '/missioncontrol/collections';
-            });
-        };
-
-        this.edit = function(collection) {
-            return $http.patch('/missioncontrol/collections/' + collection.collection_id, collection);
-        }
-    }]);
-})();
-
 (function() {
     var liveApp = angular.module('app', []);
 
@@ -2228,140 +1087,6 @@
     });
 })();
 (function() {
-    var signUpApp = angular.module('app', ['ngAnimate']);
-
-    signUpApp.controller("signUpController", ["$scope", "signUpService", "flashMessage", function($scope, signUpService, flashMessage) {
-        $scope.hasSignedUp = false;
-        $scope.isSigningUp = false;
-        $scope.signUpButtonText = "Sign Up";
-
-        $scope.signUp = function() {
-            $scope.isSigningUp = true;
-            $scope.signUpButtonText = "Signing Up...";
-
-            signUpService.go($scope.user).then(function(response) {
-                $scope.hasSignedUp = true;
-                $scope.isSigningUp = false;
-            }, function(response) {
-                // Otherwise show error
-                $scope.isSigningUp = false;
-                $scope.signUpButtonText = "Sign Up";
-                flashMessage.addError('Your account could not be created. Please contact us.');
-				console.log(response);
-            });
-        }
-    }]);
-
-    signUpApp.service("signUpService", ["$http", function($http) {
-        this.go = function(credentials) {
-            return $http.post('/auth/signup', credentials);
-        };
-    }]);
-})();
-(function() {
-    var userApp = angular.module('app', []);
-
-    userApp.controller("editUserController", ['$http', '$scope', 'editUserService', 'flashMessage', function($http, $scope, editUserService, flashMessage) {
-        $scope.isUpdating = {
-            profile: false,
-            emailNotifications: false,
-            SMSNotifications: false
-        };
-
-        $scope.username = laravel.user.username;
-
-        $scope.missions = laravel.missions;
-
-        $scope.patches = laravel.patches;
-
-        $scope.profile = {
-            summary: laravel.user.profile.summary,
-            twitter_account: laravel.user.profile.twitter_account,
-            reddit_account: laravel.user.profile.reddit_account,
-            favorite_quote: laravel.user.profile.favorite_quote,
-            favorite_mission: laravel.user.profile.favorite_mission,
-            favorite_patch: laravel.user.profile.favorite_patch
-        };
-
-        $scope.updateProfile = function() {
-            $scope.isUpdating.profile = true;
-            $http.patch('/users/' + $scope.username + '/edit', $scope.profile)
-                .then(function(response) {
-                    window.location = '/users/' + $scope.username;
-                });
-        };
-
-        $scope.emailNotifications = {
-            LaunchChange: laravel.notifications.LaunchChange,
-            NewMission: laravel.notifications.NewMission,
-            TMinus24HoursEmail: laravel.notifications.TMinus24HoursEmail,
-            TMinus3HoursEmail: laravel.notifications.TMinus3HoursEmail,
-            TMinus1HourEmail: laravel.notifications.TMinus1HourEmail,
-            NewsSummaries: laravel.notifications.NewsSummaries
-        };
-
-        $scope.updateEmailNotifications = function() {
-            $scope.isUpdating.emailNotifications = true;
-            editUserService.updateEmails($scope.username, $scope.emailNotifications).then(function() {
-                $scope.isUpdating.emailNotifications = false;
-            });
-        };
-
-        $scope.SMSNotification = {
-            mobile: laravel.user.mobile
-        };
-
-        if (laravel.notifications.TMinus24HoursSMS === true) {
-            $scope.SMSNotification.status = "TMinus24HoursSMS";
-        } else if (laravel.notifications.TMinus3HoursSMS === true) {
-            $scope.SMSNotification.status = "TMinus3HoursSMS";
-        } else if (laravel.notifications.TMinus1HourSMS === true) {
-            $scope.SMSNotification.status = "TMinus1HourSMS";
-        } else {
-            $scope.SMSNotification.status = "false";
-        }
-
-        $scope.updateSMSNotifications = function() {
-            $scope.isUpdating.SMSNotifications = true;
-            editUserService.updateSMS($scope.username, $scope.SMSNotification).then(function() {
-                $scope.isUpdating.SMSNotifications = false;
-            });
-        }
-
-    }]);
-
-    userApp.service('editUserService', ["$http", "flashMessage", function($http, flashMessage) {
-        this.updateSMS = function(username, notification) {
-            return $http.patch('/users/' + username + '/edit/smsnotifications',
-
-                { 'SMSNotification': notification }
-
-            ).then(function(response) {
-                return flashMessage.addOK(response.data);
-            }, function(response) {
-                return flashMessage.addError(response.data);
-            });
-        };
-
-        this.updateEmails = function(username, notification) {
-            return $http.patch('/users/' + username + '/edit/emailnotifications',
-
-                { 'emailNotifications': notification }
-
-            ).then(function(response) {
-                return flashMessage.addOK(response.data);
-            }, function(response) {
-                return flashMessage.addError(response.data);
-            });
-        };
-
-        this.updateProfile = function() {
-
-        };
-    }]);
-
-})();
-(function() {
     var locationsApp = angular.module('app', []);
 
     locationsApp.controller("locationsController", ["$scope", "locationsService", "$compile", function($scope, locationsService, $compile) {
@@ -2489,6 +1214,1552 @@
     }]);
 })();
 
+(function() {
+    var app = angular.module('app', []);
+
+    app.controller("missionController", ['$scope', 'missionService', function($scope, missionService) {
+		$scope.showAddPart = false;
+		$scope.partFlight = {};
+        // Scope the possible form data info
+        $scope.data = {
+            parts: laravel.parts,
+            spacecraft: laravel.spacecraft,
+            destinations: laravel.destinations,
+            missionTypes: laravel.missionTypes,
+            launchSites: laravel.launchSites,
+            landingSites: laravel.landingSites,
+            vehicles: laravel.vehicles,
+            astronauts: laravel.astronauts,
+
+            launchVideos: laravel.launchVideos ? laravel.launchVideos : null,
+            missionPatches: laravel.missionPatches ? laravel.missionPatches : null,
+            pressKits: laravel.pressKits ? laravel.pressKits : null,
+            cargoManifests: laravel.cargoManifests ? laravel.cargoManifests : null,
+            pressConferences: laravel.pressConferences ? laravel.pressConferences : null,
+            featuredImages: laravel.featuredImages ? laravel.featuredImages: null,
+
+            firstStageEngines: ['Merlin 1A', 'Merlin 1B', 'Merlin 1C', 'Merlin 1D'],
+            upperStageEngines: ['Kestrel', 'Merlin 1C-Vac', 'Merlin 1D-Vac'],
+            upperStageStatuses: ['Did not reach orbit', 'Decayed', 'Deorbited', 'Earth Orbit', 'Solar Orbit'],
+            spacecraftTypes: ['Dragon 1', 'Dragon 2'],
+            returnMethods: ['Splashdown', 'Landing', 'Did Not Return'],
+            eventTypes: ['Wet Dress Rehearsal', 'Static Fire'],
+            launchIlluminations: ['Day', 'Night', 'Twilight'],
+            statuses: ['Upcoming', 'Complete', 'In Progress'],
+            outcomes: ['Failure', 'Success'],
+			specificities: [
+				{'value' : 0, 'text' : 'Year'},
+				{'value' : 1, 'text' : 'Half'},
+				{'value' : 2, 'text' : 'Subyear'},
+				{'value' : 3, 'text' : 'Quarter'},
+				{'value' : 4, 'text' : 'Month'},
+				{'value' : 5, 'text' : 'Submonth'},
+				{'value' : 6, 'text' : 'Day'},
+				{'value' : 7, 'text' : 'Precise'}	
+			]
+        };
+
+        $scope.filters = {
+            parts: {
+                type: ''
+            }
+        };
+
+        $scope.mission = {
+            data: laravel.mission,
+            make: function() {
+                missionService.make($scope.mission.data);
+            }
+        };
+		
+		$scope.addPartFlight = function(partFlight){
+			if(typeof(this.mission.data.part_flights) == 'undefined'){
+				this.mission.data.part_flights = [];
+			}
+			partFlight.part.type = this.filters.parts.type;
+			this.mission.data.part_flights.push(partFlight);
+			this.partFlight = {};
+			this.showAddPart = false;
+		}
+    }]);
+
+    app.service("missionService", ["$http", "CSRF_TOKEN", function($http, CSRF_TOKEN) {
+        this.make = function(mission) {
+            if (mission.mission_id == null) {
+                return $http.post('/missions/create', {
+                    mission: mission,
+                    _token: CSRF_TOKEN
+                }).then(function (response) {
+                    window.location = '/missions/' + response.data;
+                });
+            } else {
+                return $http.patch('/missions/' + mission.slug + '/edit', {
+                    mission: mission,
+                    _token: CSRF_TOKEN
+                }).then(function(response){
+					console.log(response);
+				});;
+            }
+        };
+    }]);
+})();
+(function() {
+    var missionControlApp = angular.module("app", []);
+
+    missionControlApp.controller("missionControlController", ["$scope", "missionControlService", function($scope, missionControlService) {
+        $scope.hasSearchResults = false;
+        $scope.isCurrentlySearching = false;
+        $scope.pageTitle = "Mission Control";
+
+        $scope.$on('startedSearching', function() {
+            $scope.hasSearchResults = false;
+            $scope.isCurrentlySearching = true;
+            $scope.pageTitle = "Searching...";
+        });
+
+        $scope.$on('finishedSearching', function(event, arg) {
+            $scope.hasSearchResults = true;
+            $scope.isCurrentlySearching = false;
+            $scope.pageTitle = '"' + arg + '" results';
+        });
+
+        $scope.$on('exitSearchMode', function(event, arg) {
+            $scope.hasSearchResults = $scope.isCurrentlySearching = false;
+            $scope.pageTitle = "Mission Control";
+        });
+
+        $scope.missioncontrol = {
+            objects: {
+                visibleSection: 'latest',
+                show: function(sectionToShow) {
+                    $scope.missioncontrol.objects.visibleSection = sectionToShow;
+                }
+            },
+            leaderboards: {
+                visibleSection: 'week',
+                show: function(sectionToShow) {
+                    $scope.missioncontrol.leaderboards.visibleSection = sectionToShow;
+                }
+            }
+        }
+    }]);
+
+    missionControlApp.controller("searchController", ["$scope", "$rootScope", "missionControlService", function($scope, $rootScope, missionControlService) {
+
+        $scope.search = function() {
+
+            // Get query and broadcast
+            var currentQuery = $scope.currentSearch.toQuery();
+            $rootScope.$broadcast('startedSearching');
+
+            // Make request
+            missionControlService.search(currentQuery).then(function(response) {
+                $rootScope.$broadcast('finishedSearching', currentQuery.searchTerm);
+                $scope.searchResults = response.data;
+            });
+        };
+    }]);
+
+    missionControlApp.service("missionControlService", ["$http", function($http) {
+        this.search = function(currentQuery) {
+            return $http.post('/missioncontrol/search', { search: currentQuery });
+        };
+    }]);
+})();
+(function() {
+    var missionsListApp = angular.module('app', []);
+
+    missionsListApp.controller("missionsListController", ['$scope', function($scope) {
+        $scope.missions = laravel.missions;
+
+        // Cheap way to get the next launch (only use on future mission page)
+        $scope.nextLaunch = function() {
+            return $scope.missions[0];
+        };
+
+        // Cheap way to get the previous launch (only use on past mission page)
+        $scope.lastLaunch = function() {
+            return $scope.missions[$scope.missions.length - 1];
+        };
+
+        $scope.currentYear = function() {
+            return moment().year();
+        };
+
+        $scope.missionsInYear = function(year, completeness) {
+            return $scope.missions.filter(function(mission) {
+                return moment(mission.launch_date_time).year() == year && mission.status == completeness;
+            }).length;
+        };
+    }]);
+})();
+(function() {
+    var objectApp = angular.module('app', ['ui.tree', 'ngSanitize'], function($rootScopeProvider) {
+        $rootScopeProvider.digestTtl(20);
+    });
+
+    objectApp.controller("objectController", ["$scope", "$http", function($scope, $http) {
+
+        $scope.note = laravel.userNote !== null ? laravel.userNote.note : "";
+        $scope.object = laravel.object;
+
+        $scope.$watch("note", function(noteValue) {
+            if (noteValue === "" || noteValue === null) {
+                $scope.noteButtonText = "Create Note";
+                $scope.noteReadText = '<p class="exclaim">Create a note!</p>';
+            } else {
+                $scope.noteButtonText = "Edit Note";
+                $scope.noteReadText = noteValue;
+            }
+        });
+
+        $scope.noteState = "read";
+        $scope.changeNoteState = function() {
+
+            $scope.originalNote = $scope.note;
+
+            if ($scope.noteState == "read") {
+                $scope.noteState = "write";
+            } else {
+                $scope.noteState = "read";
+            }
+        };
+
+        $scope.saveNote = function() {
+            if ($scope.originalNote === "") {
+
+                $http.post('/missioncontrol/objects/' + $scope.object.object_id + '/note', {
+                    note: $scope.note
+                }).then(function() {
+                    $scope.changeNoteState();
+                });
+
+            } else {
+
+                $http.patch('/missioncontrol/objects/' + $scope.object.object_id + '/note', {
+                    note: $scope.note
+                }).then(function() {
+                    $scope.changeNoteState();
+                });
+            }
+        };
+
+        $scope.deleteNote = function() {
+            $http.delete('/missioncontrol/objects/' + $scope.object.object_id + '/note')
+                .then(function() {
+                    $scope.note = "";
+                    $scope.changeNoteState();
+                });
+        };
+
+        /* FAVORITES */
+        $scope.favorites = laravel.totalFavorites;
+
+        $scope.$watch("favorites", function(newFavoritesValue) {
+            if (newFavoritesValue == 1) {
+                $scope.favoritesText = "1 Favorite";
+            }  else {
+                $scope.favoritesText = $scope.favorites + " Favorites";
+            }
+        });
+
+        $scope.isFavorited = laravel.isFavorited !== null;
+        $scope.toggleFavorite = function() {
+
+            $scope.isFavorited = !$scope.isFavorited;
+
+            if ($scope.isFavorited === true) {
+
+                var requestType = 'POST';
+                $scope.favorites++;
+                $http.post('/missioncontrol/objects/' + $scope.object.object_id + '/favorite');
+
+            } else if ($scope.isFavorited === false) {
+
+                var requestType = 'DELETE';
+                $scope.favorites--;
+                $http.delete('/missioncontrol/objects/' + $scope.object.object_id + '/favorite');
+
+            }
+        };
+
+        /* DOWNLOAD */
+        $scope.incrementDownloads = function() {
+            $http.get('/missioncontrol/objects/' + $scope.object.object_id + '/download');
+        }
+
+    }]);
+
+    objectApp.controller('commentsController', ["$scope", "commentService", "Comment", "flashMessage", function($scope, commentService, Comment, flashMessage) {
+        $scope.object = laravel.object;
+        $scope.commentsAreLoaded = false;
+        $scope.isAddingTopLevelComment = false;
+
+        $scope.addTopLevelComment = function(form) {
+            $scope.isAddingTopLevelComment = true;
+            commentService.addTopLevel($scope.object, $scope.newComment).then(function(response) {
+                $scope.isAddingTopLevelComment = false;
+                $scope.comments.push(new Comment(response.data));
+                $scope.newComment = null;
+                form.$setUntouched();
+                    flashMessage.addOK('Comment submitted');
+            },
+            function(response) {
+                $scope.isAddingTopLevelComment = false;
+                flashMessage.addError('Comment could not be submitted. Try again or contact us.');
+            });
+        };
+
+        (function() {
+            commentService.get($scope.object).then(function(response) {
+                $scope.comments = response.data.map(function(comment) {
+                    return new Comment(comment);
+                });
+                $scope.commentsAreLoaded = true;
+            });
+        })();
+
+    }]);
+
+    objectApp.service("noteService", ["$http", function($http) {
+
+    }]);
+
+    objectApp.service("favoriteService", ["$http", function($http) {
+
+    }]);
+
+    objectApp.service("commentService", ["$http",
+        function($http) {
+
+            this.get = function (object) {
+                return $http.get('/missioncontrol/objects/' + object.object_id + '/comments');
+            };
+
+            this.addTopLevel = function(object, comment) {
+                return $http.post('/missioncontrol/objects/' + object.object_id + '/comments/create', { comment: {
+                    comment: comment,
+                    parent: null
+                }});
+            };
+
+            this.addReply = function(object, reply, parent) {
+                return $http.post('/missioncontrol/objects/' + object.object_id + '/comments/create', { comment: {
+                    comment: reply,
+                    parent: parent.comment_id
+                }});
+            };
+
+            this.delete = function(object, comment) {
+                return $http.delete('/missioncontrol/objects/' + object.object_id + '/comments/' + comment.comment_id);
+            };
+
+            this.edit = function(object, comment) {
+                return $http.patch('/missioncontrol/objects/' + object.object_id + '/comments/' + comment.comment_id, { comment: {
+                    comment: comment.editText
+                }});
+            };
+        }
+    ]);
+
+    objectApp.factory("Comment", ["commentService", function(commentService) {
+        function Comment(comment) {
+            var self = comment;
+
+            if (typeof self.children === 'undefined') {
+                self.children = [];
+            }
+
+            self.isReplying = false;
+            self.isEditing = false;
+            self.isDeleting = false;
+
+            self.isSending = {
+                reply: false,
+                edit: false,
+                deletion: false
+            };
+
+            self.toggleReplyState = function() {
+                if (!self.isReplying) {
+                    self.isReplying = true;
+                    self.isEditing = self.isDeleting = false;
+                } else {
+                    self.isReplying = false;
+                }
+            };
+
+            self.toggleEditState = function() {
+                if (!self.isEditing) {
+                    self.isEditing = true;
+                    self.isReplying = self.isDeleting = false;
+                } else {
+                    self.isEditing = false;
+                }
+            };
+
+            self.toggleDeleteState = function() {
+                if (!self.isDeleting) {
+                    self.isDeleting = true;
+                    self.isReplying = self.isEditing = false;
+                } else {
+                    self.isDeleting = false;
+                }
+            };
+
+            self.editText = self.comment;
+
+            self.reply = function() {
+                self.isSending.reply = true;
+                commentService.addReply(laravel.object, self.replyText, self).then(function(response) {
+                    self.replyText = null;
+                    self.isReplying = self.isSending.reply = false;
+
+                    self.children.push(new Comment(response.data));
+                });
+            };
+
+            self.edit = function() {
+                self.isSending.edit = true;
+                commentService.edit(laravel.object, self).then(function(response) {
+                    self.comment_md = response.data.comment_md;
+                    self.comment = self.editText;
+                    self.editText = null;
+                    self.isEditing = self.isSending.edit = false;
+                });
+            };
+
+            self.delete = function(scope) {
+                self.isSending.deletion = true;
+                commentService.delete(laravel.object, self).then(function() {
+                    self.comment = self.comment_md = null;
+                    self.isDeleting = self.isSending.deletion = false;
+
+                    // If the comment has no children, remove it entirely. Otherwise, just show [deleted], similar to Reddit
+                    if (self.children.length === 0) {
+                        scope.$parent.remove();
+                    } else {
+                        self.isHidden = true;
+                    }
+                });
+            };
+
+            self.children = self.children.map(function(reply) {
+                return new Comment(reply);
+            });
+
+            return self;
+        }
+
+        return Comment;
+    }]);
+})();
+(function() {
+    var orderMissionsListApp = angular.module('app', []);
+
+    orderMissionsListApp.controller("orderMissionsListController", ['$scope', 'orderMissionService', function($scope, orderMissionService) {
+        $scope.missions = laravel.missions;
+		$scope.incrementRemaining = function(orderId){
+			for(var i=0; i<this.missions.length; i++){
+				if(this.missions[i].launch_order_id >= orderId){
+					this.missions[i].launch_order_id ++;
+				}
+			}
+		}
+		
+		$scope.saveChanges = function(){
+			orderMissionService.updateOrder(this.missions);
+		}
+    }]);
+	orderMissionsListApp.service("orderMissionService", ["$http", "CSRF_TOKEN", function($http, CSRF_TOKEN) {
+        this.updateOrder = function(missions) {
+			//console.log(missions);
+			return $http.post('/missions/editMissionOrder', {
+				missions: missions,
+				_token: CSRF_TOKEN
+			}).then(function (response) {
+				console.log(response)
+			});
+        };
+    }]);
+})();
+(function() {
+    var app = angular.module('app', []);
+
+    app.controller('pastMissionController', ["$scope", "missionDataService", "telemetryPlotCreator", "ephemerisPlotCreator", function($scope, missionDataService, telemetryPlotCreator, ephemerisPlotCreator) {
+        $scope.mission = laravel.mission;
+
+        (function() {
+            missionDataService.telemetry($scope.mission.slug).then(function(response) {
+                $scope.telemetryPlots = {
+                    altitudeVsTime:         telemetryPlotCreator.altitudeVsTime(response.data),
+                    altitudeVsDownrange:    telemetryPlotCreator.altitudeVsDownrange(response.data),
+                    velocityVsTime:         telemetryPlotCreator.velocityVsTime(response.data),
+                    downrangeVsTime:        telemetryPlotCreator.downrangeVsTime(response.data)
+                }
+            });
+            missionDataService.orbitalElements($scope.mission.slug).then(function(response) {
+                $scope.orbitalPlots = {
+                    apogeeVsTime:           ephemerisPlotCreator.apogeeVsTime(response.data),
+                    perigeeVsTime:          ephemerisPlotCreator.perigeeVsTime(response.data),
+                    inclinationVsTime:      ephemerisPlotCreator.inclinationVsTime(response.data)
+                }
+            });
+        })();
+    }]);
+
+    app.service('telemetryPlotCreator', [function() {
+        this.altitudeVsTime = function(telemetryCollection) {
+            return {
+                data: telemetryCollection.filter(function(telemetry) {
+                    return telemetry.altitude != null;
+                }).map(function(telemetry) {
+                    return { timestamp: telemetry.timestamp, altitude: telemetry.altitude };
+                }),
+                settings: {
+                    extrapolation: true,
+                    interpolation: 'cardinal',
+                    xAxis: {
+                        type: 'linear',
+                        key: 'timestamp',
+                        title: 'Time (T+s)'
+                    },
+                    yAxis: {
+                        type: 'linear',
+                        key: 'altitude',
+                        title: 'Altitude (km)',
+                        formatter: function(d) {
+                            return d / 1000;
+                        }
+                    },
+                    chartTitle: 'Altitude vs. Time'
+                }
+            }
+        };
+
+        this.altitudeVsDownrange = function(telemetryCollection) {
+            return {
+                data: telemetryCollection.filter(function(telemetry) {
+                    return (telemetry.downrange != null && telemetry.altitude != null);
+                }).map(function(telemetry) {
+                    return { downrange: telemetry.downrange, altitude: telemetry.altitude };
+                }),
+                settings: {
+                    extrapolation: true,
+                    interpolation: 'cardinal',
+                    xAxis: {
+                        type: 'linear',
+                        key: 'downrange',
+                        title: 'Downrange Distance (km)',
+                        formatter: function(d) {
+                            return d / 1000;
+                        }
+                    },
+                    yAxis: {
+                        type: 'linear',
+                        key: 'altitude',
+                        title: 'Altitude (km)',
+                        formatter: function(d) {
+                            return d / 1000;
+                        }
+                    },
+                    chartTitle: 'Altitude vs. Downrange Distance'
+                }
+            }
+        };
+
+        this.velocityVsTime = function(telemetryCollection) {
+            return {
+                data: telemetryCollection.filter(function(telemetry) {
+                    return telemetry.velocity != null;
+                }).map(function(telemetry) {
+                    return { timestamp: telemetry.timestamp, velocity: telemetry.velocity };
+                }),
+                settings: {
+                    extrapolation: true,
+                    interpolation: 'cardinal',
+                    xAxis: {
+                        type: 'linear',
+                        key: 'timestamp',
+                        title: 'Time (T+s)'
+                    },
+                    yAxis: {
+                        type: 'linear',
+                        key: 'velocity',
+                        title: 'Velocity (m/s)'
+                    },
+                    chartTitle: 'Velocity vs. Time'
+                }
+            }
+        };
+
+        this.downrangeVsTime = function(telemetryCollection) {
+            return {
+                data: telemetryCollection.filter(function(telemetry) {
+                    return telemetry.downrange != null;
+                }).map(function(telemetry) {
+                    return { timestamp: telemetry.timestamp, downrange: telemetry.downrange };
+                }),
+                settings: {
+                    extrapolation: true,
+                    interpolation: 'cardinal',
+                    xAxis: {
+                        type: 'linear',
+                        key: 'timestamp',
+                        title: 'Time (T+s)'
+                    },
+                    yAxis: {
+                        type: 'linear',
+                        key: 'downrange',
+                        title: 'Downrange Distance (km)',
+                        formatter: function(d) {
+                            return d / 1000;
+                        }
+                    },
+                    chartTitle: 'Downrange Distance vs. Time'
+                }
+            }
+        };
+    }]);
+
+    app.service('ephemerisPlotCreator', [function() {
+        this.apogeeVsTime = function(orbitalElements) {
+            return {
+                data: orbitalElements.map(function(orbitalElement) {
+                        return {
+                            timestamp: orbitalElement.epoch,
+                            apogee: orbitalElement.apogee
+                        };
+                }),
+                settings: {
+                    extrapolation: false,
+                    interpolation: 'linear',
+                    xAxis: {
+                        type: 'timescale',
+                        key: 'timestamp',
+                        title: 'Epoch Date',
+                        ticks: 10,
+                        formatter: function(d) {
+                            return moment(d).format('MMM D, YYYY');
+                        }
+                    },
+                    yAxis: {
+                        type: 'linear',
+                        key: 'apogee',
+                        title: 'Apogee (km)',
+                        formatter: function(d) {
+                            return Math.round(d * 10) / 10; // Round to 1dp
+                        }
+                    },
+                    chartTitle: 'Apogee (km) vs. Time'
+                }
+            }
+        };
+
+        this.perigeeVsTime = function(orbitalElements) {
+            return {
+                data: orbitalElements.map(function(orbitalElement) {
+                    return {
+                        timestamp: orbitalElement.epoch,
+                        perigee: orbitalElement.perigee
+                    };
+                }),
+                settings: {
+                    extrapolation: false,
+                    interpolation: 'linear',
+                    xAxis: {
+                        type: 'timescale',
+                        key: 'timestamp',
+                        title: 'Epoch Date',
+                        ticks: 10,
+                        formatter: function(d) {
+                            return moment(d).format('MMM D, YYYY');
+                        }
+                    },
+                    yAxis: {
+                        type: 'linear',
+                        key: 'perigee',
+                        title: 'Perigee (km)',
+                        formatter: function(d) {
+                            return Math.round(d * 10) / 10; // Round to 1dp
+                        }
+                    },
+                    chartTitle: 'Perigee (km) vs. Time'
+                }
+            }
+        };
+
+        this.inclinationVsTime = function(orbitalElements) {
+            return {
+                data: orbitalElements.map(function(orbitalElement) {
+                    return {
+                        timestamp: orbitalElement.epoch,
+                        inclination: orbitalElement.perigee
+                    };
+                }),
+                settings: {
+                    extrapolation: false,
+                    interpolation: 'linear',
+                    xAxis: {
+                        type: 'timescale',
+                        key: 'timestamp',
+                        title: 'Epoch Date',
+                        ticks: 10,
+                        formatter: function(d) {
+                            return moment(d).format('MMM D, YYYY');
+                        }
+                    },
+                    yAxis: {
+                        type: 'linear',
+                        key: 'inclination',
+                        title: 'Inclination (km)',
+                        formatter: function(d) {
+                            return Math.round(d * 10) / 10 + '°'; // Round to 1dp
+                        }
+                    },
+                    chartTitle: 'Inclination (°) vs. Time'
+                }
+            }
+        };
+    }]);
+})();
+(function() {
+	var publisherApp = angular.module('app', []);
+
+	publisherApp.controller('publishersController', ["$scope", "publisherService", "flashMessage", function($scope, publisherService, flashMessage) {
+        $scope.publishers = laravel.publishers;
+        $scope.isCreatingPublisher = $scope.isEditingPublisher = false;
+
+        $scope.editPublisher = function(publisher) {
+            $scope.isEditingPublisher = true;
+            publisherService.edit(publisher).then(function(response) {
+                publisher = response.data;
+                $scope.isEditingPublisher = false;
+                flashMessage.addOK("Publisher " + publisher.name + " edited");
+            });
+        };
+
+        $scope.createPublisher = function(publisher, form) {
+            $scope.isCreatingPublisher = true;
+            publisherService.create(publisher).then(function(response) {
+                $scope.publishers.unshift(response.data);
+                $scope.isCreatingPublisher = false;
+
+                flashMessage.addOK("Publisher " + publisher.name + " created");
+                $scope.newPublisher = null;
+                form.$setUntouched();
+
+            }, function(response) {
+                $scope.isCreatingPublisher = false;
+                flashMessage.addError("That publisher already exists");
+            });
+        };
+
+        $scope.deletePublisher = function(publisher) {
+            $scope.isDeletingPublisher = true;
+            publisherService.delete(publisher).then(function(response) {
+                $scope.isDeletingPublisher = false;
+                flashMessage.addOK("Publisher " + publisher.name + " deleted");
+            });
+        }
+	}]);
+
+    publisherApp.service('publisherService', ["$http", function($http) {
+        this.create = function(publisher) {
+            return $http.post('/missioncontrol/publishers/create', {publisher: publisher});
+        };
+
+        this.edit = function(publisher) {
+            return $http.patch('/missioncontrol/publishers/' + publisher.publisher_id, {publisher: publisher});
+        };
+
+        this.delete = function(publisher) {
+            return $http.delete('/missioncontrol/publishers/' + publisher.publisher_id);
+        };
+    }]);
+})();
+(function() {
+    var questionsApp = angular.module('app', []);
+
+    questionsApp.controller("questionsController", ["$scope", "questionService", function($scope, questionService) {
+
+        $scope.clearPinnedQuestion = function() {
+            history.replaceState('', document.title, window.location.pathname);
+            $scope.pinnedQuestion = null;
+        };
+
+        $scope.pinQuestion = function(question) {
+            history.replaceState('', document.title, '#' + question.slug);
+            $scope.pinnedQuestion = question;
+        };
+
+        (function() {
+            questionService.get().then(function(questions) {
+                $scope.questions = questions;
+
+                // Set the pinned question if one is present
+                if (window.location.hash) {
+                    $scope.pinnedQuestion = $scope.questions.filter(function(q) {
+                        return window.location.hash.substring(1) == q.slug;
+                    })[0];
+                } else {
+                    $scope.pinnedQuestion = null;
+                }
+
+            });
+        })();
+    }]);
+
+    questionsApp.service("questionService", ["$http", "Question", function($http, Question) {
+        this.get = function() {
+            return $http.get('/faq/get').then(function(response) {
+                return response.data.map(function(question) {
+                    return new Question(question);
+                });
+            });
+        };
+    }]);
+
+    questionsApp.factory("Question", function() {
+        return function(question) {
+            var self = question;
+
+            self.slug = question.question.toLowerCase()
+                .replace(/[^\w ]+/g,'')
+                .replace(/ +/g,'-');
+
+            return self;
+        };
+    });
+
+})();
+(function() {
+    var reviewApp = angular.module('app', []);
+
+    reviewApp.controller("reviewController", ["$scope", 'reviewService', function($scope, reviewService) {
+        $scope.isLoading = true;
+        $scope.objectsToReview = [];
+
+        $scope.visibilities = ['Default', 'Public', 'Hidden'];
+
+        $scope.action = function(object, status) {
+
+            object.status = status;
+
+            if (status == 'Published') {
+                object.isBeingPublished = true;
+            } else if (status == 'Deleted') {
+                object.isBeingDeleted = true;
+            }
+
+            reviewService.review(object).then(function() {
+                $scope.objectsToReview.splice($scope.objectsToReview.indexOf(object), 1);
+
+            }, function(response) {
+                alert('An error occurred');
+                console.log(response);
+            })
+        };
+
+        $scope.reviewPageSubheading = function() {
+            if ($scope.isLoading) {
+                return 'Loading Queued Objects...';
+            } else {
+                if (angular.isDefined($scope.objectsToReview))
+                    return '<span>' + $scope.objectsToReview.length + '</span> objects to review';
+            }
+        };
+
+        (function() {
+            reviewService.fetch().then(function(response) {
+                console.log(response);
+                $scope.objectsToReview = response;
+                $scope.isLoading = false;
+            });
+        })();
+    }]);
+
+    reviewApp.service('reviewService', ["$http", "ObjectToReview", function($http, ObjectToReview) {
+        this.fetch = function() {
+            return $http.get('/missioncontrol/review/get').then(function(response) {
+
+                return response.data.map(function(objectToReview) {
+                    return new ObjectToReview(objectToReview);
+                });
+            });
+        };
+
+        this.review = function(object) {
+            return $http.post('/missioncontrol/review/update/' + object.object_id, {
+                visibility: object.visibility, status: object.status
+            });
+        };
+    }]);
+
+    reviewApp.factory("ObjectToReview", function() {
+        return function (object) {
+            var self = object;
+
+            self.visibility = "Default";
+
+            self.linkToObject = '/missioncontrol/object/' + self.object_id;
+            self.linkToUser = '/users/' + self.user.username;
+
+            self.createdAtRelative = moment.utc(self.created_at).fromNow();
+
+            self.size = self.size / 1000 + ' KB';
+
+            self.isBeingPublished = false;
+            self.isBeingDeleted = false;
+
+            return self;
+        }
+    });
+})();
+(function() {
+    var signUpApp = angular.module('app', ['ngAnimate']);
+
+    signUpApp.controller("signUpController", ["$scope", "signUpService", "flashMessage", function($scope, signUpService, flashMessage) {
+        $scope.hasSignedUp = false;
+        $scope.isSigningUp = false;
+        $scope.signUpButtonText = "Sign Up";
+
+        $scope.signUp = function() {
+            $scope.isSigningUp = true;
+            $scope.signUpButtonText = "Signing Up...";
+
+            signUpService.go($scope.user).then(function(response) {
+                $scope.hasSignedUp = true;
+                $scope.isSigningUp = false;
+            }, function() {
+                // Otherwise show error
+                $scope.isSigningUp = false;
+                $scope.signUpButtonText = "Sign Up";
+                flashMessage.addError('Your account could not be created. Please contact us.');
+            });
+        }
+    }]);
+
+    signUpApp.service("signUpService", ["$http", function($http) {
+        this.go = function(credentials) {
+            return $http.post('/auth/signup', credentials);
+        };
+    }]);
+})();
+    (function() {
+    var uploadApp = angular.module('app', []);
+
+    uploadApp.controller("uploadAppController", ["$scope", function($scope) {
+        $scope.activeSection = "upload";
+        $scope.showRecentAdditions = true;
+
+        $scope.data = {
+            missions: laravel.missions,
+            tags: laravel.tags,
+            subtypes: {
+                images: [
+                    'Mission Patch',
+                    'Photo',
+                    'Chart',
+                    'Concept Art',
+                    'Screenshot',
+                    'Infographic',
+                    'News Summary',
+                    'Hazard Map'
+                ],
+                videos: [
+                    'Launch Video',
+                    'Press Conference'
+                ],
+                documents: [
+                    'Press Kit',
+                    'Cargo Manifest',
+                    'Weather Forecast',
+                    'License'
+                ]
+            },
+            publishers: laravel.publishers,
+            recentUploads: laravel.recentUploads
+        };
+
+        $scope.changeSection = function(section) {
+            $scope.activeSection = section;
+            $scope.showRecentAdditions = section == 'upload';
+        };
+
+        $scope.$on('hideSubmissionMethods', function() {
+            $scope.areSubmissionMethodsHidden = true;
+        });
+
+    }]);
+
+    uploadApp.controller("uploadController", ["$rootScope", "$scope", "objectFromFile", "uploadService", function($rootScope, $scope, objectFromFile, uploadService) {
+        $scope.activeUploadSection = "dropzone";
+        $scope.isSubmitting = false;
+        $scope.isUploading = false;
+        $scope.queuedFiles = 0;
+
+        $scope.currentVisibleFile = null;
+        $scope.isVisibleFile = function(file) {
+            return $scope.currentVisibleFile === file;
+        };
+        $scope.setVisibleFile = function(file) {
+            $scope.currentVisibleFile = file;
+        };
+
+        $scope.uploadCallback = function() {
+            $scope.isUploading = false;
+
+            // Once files have been successfully upload, convert to Objects
+            $scope.files.forEach(function(file, index) {
+                file = objectFromFile.create(file, index);
+
+                // Set the initial visible file
+                if (index === 0) {
+                    $scope.currentVisibleFile = file;
+                }
+            });
+
+            // Change the upload section
+            $scope.activeUploadSection = "data";
+            $rootScope.$broadcast('hideSubmissionMethods');
+            $scope.showRecentAdditions = false;
+            $scope.$apply();
+        };
+
+        $scope.optionalCollection = null;
+
+        $scope.fileSubmitButtonText = function(form) {
+            if (form.$invalid) {
+                return 'We need more info';
+            } else if ($scope.isSubmitting) {
+                return 'Submitting...';
+            } else {
+                return 'Submit';
+            }
+        };
+
+        $scope.fileSubmitButtonFunction = function() {
+            $scope.isSubmitting = true;
+            uploadService.postToMissionControl($scope.files, 'files', $scope.optionalCollection);
+        }
+    }]);
+
+    uploadApp.controller("postController", ["$scope", "uploadService", function($scope, uploadService) {
+
+        $scope.NSFcomment = {};
+        $scope.redditcomment = {};
+        $scope.pressrelease = {};
+        $scope.article = {};
+        $scope.tweet = {};
+
+        $scope.isSubmitting = false;
+
+        $scope.detectPublisher = function() {
+
+        };
+
+        $scope.postSubmitButtonText = function(form) {
+            if (form.$invalid) {
+                return 'We need more info';
+            } else if ($scope.isSubmitting) {
+                return 'Submitting...';
+            } else {
+                return 'Submit';
+            }
+        };
+
+        $scope.postSubmitButtonFunction = function() {
+            $scope.isSubmitting = true;
+            switch ($scope.postType) {
+                case 'NSFcomment': uploadService.postToMissionControl($scope.NSFcomment, 'NSFcomment'); break;
+                case 'redditcomment': uploadService.postToMissionControl($scope.redditcomment, 'redditcomment'); break;
+                case 'pressrelease' : uploadService.postToMissionControl($scope.pressrelease, 'pressrelease'); break;
+                case 'article': uploadService.postToMissionControl($scope.article, 'article'); break;
+                case 'tweet': uploadService.postToMissionControl($scope.tweet, 'tweet'); break;
+            }
+        }
+    }]);
+
+    uploadApp.controller("writeController", ["$scope", "uploadService", function($scope, uploadService) {
+
+        $scope.text = {
+            title: null,
+            summary: null,
+            mission_id: null,
+            anonymous: null,
+            tags: []
+        };
+
+        $scope.isSubmitting = false;
+
+        $scope.writeSubmitButtonText = function(form) {
+            if (form.$invalid) {
+                return 'We need more info';
+            } else if ($scope.isSubmitting) {
+                return 'Submitting...';
+            } else {
+                return 'Submit';
+            }
+        };
+
+        $scope.writeSubmitButtonFunction = function() {
+            $scope.isSubmitting = true;
+            uploadService.postToMissionControl($scope.text, 'text');
+        }
+    }]);
+
+    uploadApp.service('uploadService', ['$http', 'CSRF_TOKEN', 'flashMessage', function($http, CSRF_TOKEN, flashMessage) {
+        this.postToMissionControl = function(dataToUpload, resourceType, collection) {
+            var submissionData = {
+                data: dataToUpload,
+                collection: collection,
+                type: resourceType,
+                _token: CSRF_TOKEN
+            };
+
+            if (resourceType == 'files') {
+                submitFiles(submissionData).then(redirect, error);
+            } else if (["article", "pressrelease", "tweet", "redditcomment", "NSFcomment"].indexOf(resourceType) !== -1) {
+                submitPost(submissionData).then(redirect, error);
+            } else if (resourceType == "text") {
+                submitWriting(submissionData).then(redirect, error);
+            }
+        };
+
+        var submitFiles = function(submissionData) {
+            return $http.put('/missioncontrol/create/submit/files', submissionData);
+        };
+
+        var submitPost = function(submissionData) {
+            return $http.put('/missioncontrol/create/submit/post', submissionData);
+        };
+
+        var submitWriting = function(submissionData) {
+            return $http.put('/missioncontrol/create/submit/writing', submissionData);
+        };
+
+        var redirect = function(response) {
+            window.location = '/missioncontrol';
+        };
+
+        var error = function(response) {
+            flashMessage.addError(response.data.errors);
+        };
+    }]);
+
+    uploadApp.factory("Image", function() {
+        return function (image, index) {
+            var self = image;
+
+            self.index = index;
+
+            self.title = null;
+            self.summary = null;
+            self.subtype = null;
+            self.mission_id = null;
+            self.author = null;
+            self.attribution = null;
+            self.anonymous = null;
+            self.tags = [];
+
+            self.datetimeExtractedFromEXIF = angular.isDefined(self.originated_at) ? true : false;
+
+            return self;
+        }
+    });
+
+    uploadApp.factory("GIF", function() {
+        return function(gif, index) {
+            var self = gif;
+
+            self.index = index;
+
+            self.title = null;
+            self.summary = null;
+            self.subtype = null;
+            self.mission_id = null;
+            self.author = null;
+            self.attribution = null;
+            self.anonymous = null;
+            self.tags = [];
+            self.originated_at = null;
+
+            return self;
+        }
+    });
+
+    uploadApp.factory("Audio", function() {
+        return function(audio, index) {
+            var self = audio;
+
+            self.index = index;
+
+            self.title = null;
+            self.summary = null;
+            self.subtype = null;
+            self.mission_id = null;
+            self.author = null;
+            self.attribution = null;
+            self.anonymous = null;
+            self.tags = [];
+            self.originated_at = null;
+
+            return self;
+        }
+    });
+
+    uploadApp.factory("Video", function() {
+        return function(video, index) {
+            var self = video;
+
+            self.index = index;
+
+            self.title = null;
+            self.summary = null;
+            self.external_url = null;
+            self.subtype = null;
+            self.mission_id = null;
+            self.author = null;
+            self.attribution = null;
+            self.anonymous = null;
+            self.tags = [];
+            self.originated_at = null;
+
+            return self;
+        }
+    });
+
+    uploadApp.factory("Document", function() {
+        return function(document, index) {
+            var self = document;
+
+            self.index = index;
+
+            self.title = null;
+            self.summary = null;
+            self.subtype = null;
+            self.mission_id = null;
+            self.author = null;
+            self.attribution = null;
+            self.anonymous = null;
+            self.tags = [];
+            self.originated_at = null;
+
+            return self;
+        }
+    });
+
+    uploadApp.service("objectFromFile", ["Image", "GIF", "Audio", "Video", "Document", function(Image, GIF, Audio, Video, Document) {
+        this.create = function(file, index) {
+            switch(file.type) {
+                case 'Image': return new Image(file, index);
+                case 'GIF': return new GIF(file, index);
+                case 'Audio': return new Audio(file, index);
+                case 'Video': return new Video(file, index);
+                case 'Document': return new Document(file, index);
+                default: return null;
+            }
+        }
+    }]);
+})();
+(function() {
+    var app = angular.module('app', []);
+
+    app.service('flashMessage', function() {
+        this.addOK = function(message) {
+
+            computeStayTime(message);
+
+            $('<p style="display:none;" class="flash-message success">' + message + '</p>').appendTo('#flash-message-container').slideDown(300);
+
+            setTimeout(function() {
+                $('.flash-message').slideUp(300, function() {
+                    $(this).remove();
+                });
+            }, computeStayTime());
+        };
+
+        this.addError = function(message) {
+
+            computeStayTime(message);
+
+            $('<p style="display:none;" class="flash-message failure">' + message + '</p>').appendTo('#flash-message-container').slideDown(300);
+
+            setTimeout(function() {
+                $('.flash-message').slideUp(300, function() {
+                    $(this).remove();
+                });
+            }, computeStayTime());
+        };
+
+        var computeStayTime = function(message) {
+            // Avg characters per word: 5.1
+            // Avg reading speed of 200 wpm:
+            //var totalChara
+            return 3000;
+        };
+    });
+})();
+
+
+(function() {
+    var app = angular.module('app', []);
+
+    app.service('missionDataService', ["$http", function($http) {
+        this.telemetry = function(slug) {
+            return $http.get('/missions/'+ slug + '/telemetry');
+        };
+
+        this.orbitalElements = function(slug) {
+            return $http.get('/missions/' + slug + '/orbitalelements').then(function(response) {
+                // premap the dates of the timestamps because otherwise we'll do it too many times
+                if (response.data === Array) {
+                    return response.data.map(function(orbitalElement) {
+                        orbitalElement.epoch = moment(orbitalElement.epoch).toDate();
+                        return orbitalElement;
+                    });
+                }
+            });
+        };
+
+        this.launchEvents = function(slug) {
+            return $http.get('/missions/' + slug + '/launchevents');
+        }
+    }]);
+})();
+
+(function() {
+    var app = angular.module('app');
+
+    app.directive('characterCounter', ["$compile", function($compile) {
+        return {
+            restrict: 'A',
+            require: 'ngModel',
+            link: function($scope, element, attributes, ngModelCtrl) {
+                var counter = angular.element('<p class="character-counter" ng-class="{ red: isInvalid }">{{ characterCounterStatement }}</p>');
+                $compile(counter)($scope);
+                element.after(counter);
+
+                ngModelCtrl.$parsers.push(function(viewValue) {
+                    $scope.isInvalid = ngModelCtrl.$invalid;
+                    if (attributes.ngMinlength > ngModelCtrl.$viewValue.length) {
+                        $scope.characterCounterStatement = attributes.ngMinlength - ngModelCtrl.$viewValue.length + ' to go';
+                    } else if (attributes.ngMinlength <= ngModelCtrl.$viewValue.length) {
+                        $scope.characterCounterStatement = ngModelCtrl.$viewValue.length + ' characters';
+                    }
+                    return viewValue;
+                });
+            }
+        }
+    }]);
+})();
+(function() {
+    var app = angular.module('app');
+
+    app.directive('chart', ["$window", function($window) {
+        return {
+            replace: true,
+            restrict: 'E',
+            scope: {
+                data: '=data',
+                settings: "=",
+                type: '@'
+            },
+            link: function($scope, elem, attrs) {
+
+                $scope.$watch('data', function(newValue) {
+                    render(newValue);
+                }, true);
+
+                $scope.$on('chart:rerender', function() {
+                    elem.empty();
+                    render($scope.data);
+                });
+
+                function render(chartData) {
+                    if (!angular.isDefined(chartData) || chartData.length == 0) {
+                        return;
+                    }
+
+                    // Make a deep copy of the object as we may be doing manipulation
+                    // which would cause the watcher to fire
+                    var data = jQuery.extend(true, [], chartData);
+
+                    var d3 = $window.d3;
+                    var svg = d3.select(elem[0]);
+                    var width = elem.width();
+                    var height = elem.height();
+
+                    // Settings for rendering the chart
+                    var settings = $scope.settings;
+
+                    // Core information used to render the chart
+                    var core = {};
+
+                    // create a reasonable set of defaults for some things
+                    if (typeof settings.xAxis.ticks === 'undefined') {
+                        settings.xAxis.ticks = 5;
+                    }
+                    if (typeof settings.yAxis.ticks === 'undefined') {
+                        settings.yAxis.ticks = 5;
+                    }
+
+                    // check padding and set default
+                    if (typeof settings.padding === 'undefined') {
+                        settings.padding = 50;
+                    }
+
+                    // draw
+                    if ($scope.type == 'bar') {
+                        drawBarChart();
+                    } else {
+                        drawLineChart();
+                    }
+
+                    function drawChart() {
+                        // Element manipulation
+                        var xAxisLine = svg.append("svg:g")
+                            .attr("class", "x axis")
+                            .attr("transform", "translate(0," + (height - settings.padding) + ")")
+                            .call(core.xAxisGenerator);
+
+                        var yAxisLine = svg.append("svg:g")
+                            .attr("class", "y axis")
+                            .attr("transform", "translate(" + settings.padding + ",0)")
+                            .attr("stroke-width", 2)
+                            .call(core.yAxisGenerator);
+
+                        svg.append("text")
+                            .attr("class", "chart-title")
+                            .attr("text-anchor", "middle")
+                            .attr("x", width / 2)
+                            .attr("y", settings.padding / 2)
+                            .text(settings.chartTitle);
+
+                        svg.append("text")
+                            .attr("class", "axis x-axis")
+                            .attr("text-anchor", "middle")
+                            .attr("x", width / 2)
+                            .attr("y", height)
+                            .text(settings.xAxis.title);
+
+                        svg.append("text")
+                            .attr("class", "axis y-axis")
+                            .attr("text-anchor", "middle")
+                            .attr("transform", "rotate(-90)")
+                            .attr("x", - (height / 2))
+                            .attr("y", settings.padding / 2)
+                            .text(settings.yAxis.title);
+                    }
+
+                    function computeChart() {
+                        // Setup xZeroing
+                        var startPoint = settings.xAxis.zeroing ? 0 : data[0][settings.xAxis.key];
+
+                        // Setup xScales
+                        if (settings.xAxis.type == 'linear') {
+                            core.xScale = d3.scale.linear()
+                                .domain([startPoint, data[data.length-1][settings.xAxis.key]])
+                                .range([settings.padding, width - settings.padding]);
+
+                        } else if (settings.xAxis.type == 'timescale') {
+                            core.xScale = d3.time.scale.utc()
+                                .domain([startPoint, data[data.length-1][settings.xAxis.key]])
+                                .range([settings.padding, width - settings.padding]);
+
+                        } else if (settings.xAxis.type == 'ordinal') {
+
+                            core.xScale = d3.scale.ordinal()
+                                .domain(data.map(function(dataBit) { return dataBit[settings.xAxis.key]; }))
+                                .rangeRoundBands([settings.padding, width - settings.padding], 0.5);
+                        }
+
+                        // setup yZeroing
+                        var startPoint = settings.yAxis.zeroing ? 0 : data[0][settings.yAxis.key];
+
+                        // setup yScales
+                        if (settings.yAxis.type == 'linear') {
+                            core.yScale = d3.scale.linear()
+                                .domain([d3.max(data, function(d) {
+                                    if (typeof d[settings.yAxis.key] === 'string') {
+                                        return parseFloat(d[settings.yAxis.key]);
+                                    }
+                                    return d[settings.yAxis.key];
+                                }), startPoint])
+                                .range([settings.padding, height - settings.padding]);
+
+                        } else if (settings.yAxis.type == 'timescale') {
+                            core.yScale = d3.time.scale.utc()
+                                .domain([d3.max(data, function(d) {
+                                    return d[settings.yAxis.key];
+                                }), startPoint])
+                                .range([settings.padding, height - settings.padding]);
+                        }
+
+                        // Generators
+                        core.xAxisGenerator = d3.svg.axis().scale(core.xScale).orient('bottom').ticks(settings.xAxis.ticks).tickFormat(function(d) {
+                            return typeof settings.xAxis.formatter !== 'undefined' ? settings.xAxis.formatter(d) : d;
+                        });
+
+                        core.yAxisGenerator = d3.svg.axis().scale(core.yScale).orient("left").ticks(settings.yAxis.ticks).tickFormat(function(d) {
+                            return typeof settings.yAxis.formatter !== 'undefined' ? settings.yAxis.formatter(d) : d;
+                        });
+                    };
+
+                    function drawBarChart() {
+
+                        computeChart();
+
+                        svg.selectAll("bar")
+                            .data(data)
+                            .enter().append("rect")
+                            .style("fill", "steelblue")
+                            .attr("x", function(d) {
+                                return core.xScale(d[settings.xAxis.key]);
+                            })
+                            .attr("width", core.xScale.rangeBand())
+                            .attr("y", function(d) {
+                                return core.yScale(d[settings.yAxis.key]);
+                            })
+                            .attr("height", function(d) {
+                                return height - core.yScale(d[settings.yAxis.key]) - settings.padding;
+                            });
+
+                        drawChart();
+                    };
+
+                    function drawLineChart() {
+
+                        computeChart();
+
+                        // Line function
+                        var lineFunction = d3.svg.line()
+                            .x(function(d) {
+                                return core.xScale(d[settings.xAxis.key]);
+                            })
+                            .y(function(d) {
+                                return core.yScale(d[settings.yAxis.key]);
+                            })
+                            .interpolate(settings.interpolation);
+
+                        svg.append("svg:path")
+                            .attr({
+                                d: lineFunction(data),
+                                "stroke-width": 2,
+                                "fill": "none",
+                                "class": "path"
+                            });
+
+                        drawChart();
+                    };
+                }
+
+            },
+            templateUrl: '/js/templates/chart.html'
+        }
+    }]);
+})();
 // Original jQuery countdown timer written by /u/EchoLogic, improved and optimized by /u/booOfBorg.
 // Rewritten as an Angular directive for SpaceXStats 4
 (function() {
@@ -2566,271 +2837,175 @@
         }
     }]);
 })();
-// Original jQuery countdown timer written by /u/EchoLogic, improved and optimized by /u/booOfBorg.
-// Rewritten as an Angular directive for SpaceXStats 4
 (function() {
     var app = angular.module('app');
 
-    app.directive('launchDate', ['$interval', '$filter', function($interval, $filter) {
-        return {
-            restrict: 'E',
-            scope: {
-                launchSpecificity: '=',
-                launchDateTime: '='
-            },
-            link: function($scope, elem, attrs) {
-                /*
-                 *   Timezone stuff.
-                 */
-                // Get the IANA Timezone identifier and format it into a 3 letter timezone.
-                $scope.localTimezone = moment().tz(jstz.determine().name()).format('z');
-
-                // Set the format to be displayed based on the launch specificity
-                switch ($scope.launchSpecificity) {
-					case "6":
-                    case 6:
-                        $scope.currentFormat = 'MMMM d, yyyy';
-                        break;
-					case "7":
-                    case 7:
-                        $scope.currentFormat = 'h:mm:ssa MMMM d, yyyy';
-                        break;
-                    default:
-                        $scope.currentFormat = null;
-                }
-
-                $scope.currentTimezone = null;
-                $scope.currentTimezoneFormatted = "Local ("+ $scope.localTimezone +")";
-
-                $scope.setTimezone = function(timezoneToSet) {
-                    if (timezoneToSet === 'local') {
-                        $scope.currentTimezone = null;
-                        $scope.currentTimezoneFormatted = "Local ("+ $scope.localTimezone +")";
-                    } else if (timezoneToSet === 'ET') {
-                        $scope.currentTimezone = moment().tz("America/New_York").format('z');
-                        $scope.currentTimezoneFormatted = 'Eastern';
-                    } else if (timezoneToSet === 'PT') {
-                        $scope.currentTimezone = moment().tz("America/Los_Angeles").format('z');
-                        $scope.currentTimezoneFormatted = 'Pacific';
-                    } else {
-                        $scope.currentTimezoneFormatted = $scope.currentTimezone = 'UTC';
-                    }
-                };
-
-                $scope.isHoveringOverAlert = false;
-
-                $scope.hoveringOverAlert = function() {
-                    $scope.isHoveringOverAlert = !$scope.isHoveringOverAlert;
-                };
-
-                $scope.displayDateTime = function() {
-                    //if ($scope.isHoveringOverAlert) {
-                    //    return 'This launch has no time yets';
-                    //}
-                    if ($scope.launchSpecificity >= 6) {
-                        return $filter('date')(moment.utc($scope.launchDateTime, 'YYYY-MM-DD HH:mm:ss').toDate(), $scope.currentFormat, $scope.currentTimezone);
-                    } else {
-                        return $scope.launchDateTime;
-                    }
-
-                };
-            },
-            templateUrl: '/js/templates/launchDate.html'
-        }
-    }]);
-})();
-(function() {
-    var app = angular.module('app');
-
-    app.directive('upload', ['$parse', function($parse) {
-        return {
-            restrict: 'A',
-            link: function($scope, element, attrs) {
-
-                // Initialize the dropzone
-                var dropzone = new Dropzone(element[0], {
-                    url: attrs.action,
-                    autoProcessQueue: false,
-                    dictDefaultMessage: "Upload files here!",
-                    maxFilesize: 1024, // MB
-                    addRemoveLinks: true,
-                    uploadMultiple: attrs.multiUpload,
-                    parallelUploads: 5,
-                    maxFiles: 5,
-                    successmultiple: function(dropzoneStatus, files) {
-
-                        $scope.files = files.objects;
-
-                        // Run a callback function with the files passed through as a parameter
-                        if (typeof attrs.callback !== 'undefined' && attrs.callback !== "") {
-                            var func = $parse(attrs.callback);
-                            func($scope, { files: files });
-                        }
-                    },
-                    error: function() {
-                        $scope.isUploading = false;
-                    }
-                });
-
-                dropzone.on("addedfile", function(file) {
-                    ++$scope.queuedFiles;
-                    $scope.$apply();
-                });
-
-                dropzone.on("removedfile", function(file) {
-                    --$scope.queuedFiles;
-                    $scope.$apply();
-                });
-
-                // upload the files
-                $scope.uploadFiles = function() {
-                    $scope.isUploading = true;
-                    dropzone.processQueue();
-                }
-            }
-        }
-    }]);
-})();
-(function() {
-    var app = angular.module('app', []);
-
-    app.directive("tags", ["Tag", "$timeout", function(Tag, $timeout) {
+    app.directive('datetime', function() {
         return {
             require: 'ngModel',
-            replace: true,
             restrict: 'E',
             scope: {
-                availableTags: '=',
-                currentTags: '=ngModel'
+                type: '@',
+                datetimevalue: '=ngModel',
+                startYear: '@',
+                isNull: '=',
+                disabled: '=?ngDisabled'
             },
-            link: function($scope, element, attributes, ctrl) {
-                $scope.suggestions = [];
-                $scope.inputWidth = {};
-                $scope.currentTags = typeof $scope.currentTags !== 'undefined' ? $scope.currentTags : [];
+            link: function($scope, element, attrs, ngModelController) {
 
-                ctrl.$options = {
-                    allowInvalid: true
+                $scope.days = [];
+                $scope.days.push({ value: 0, display: '-'});
+
+                for (i = 1; i <= 31; i++) {
+                    $scope.days.push({ value: i, display: i });
+                }
+
+                $scope.months = [
+                    { value: 0, display: '-'},
+                    { value: 1, display: 'January'},
+                    { value: 2, display: 'February'},
+                    { value: 3, display: 'March'},
+                    { value: 4, display: 'April'},
+                    { value: 5, display: 'May'},
+                    { value: 6, display: 'June'},
+                    { value: 7, display: 'July'},
+                    { value: 8, display: 'August'},
+                    { value: 9, display: 'September'},
+                    { value: 10, display: 'October'},
+                    { value: 11, display: 'November'},
+                    { value: 12, display: 'December'}
+                ];
+
+                $scope.years = function() {
+                    var years = [];
+
+                    var currentYear = moment().year();
+                    var startYear = angular.isDefined($scope.startYear) ? $scope.startYear : 1950;
+
+                    while (currentYear >= startYear) {
+                        years.push(currentYear);
+                        currentYear--;
+                    }
+                    return years;
                 };
 
-                $scope.createTag = function(createdTag) {
-                    if ($scope.currentTags.length == 5 || angular.isUndefined(createdTag)) {
-                        return;
+                //convert data from view format to model format
+                ngModelController.$parsers.push(function(viewvalue) {
+
+                    if ($scope.isNull == true) {
+                        return null;
                     }
 
-                    var tagIsPresentInCurrentTags = $scope.currentTags.filter(function(tag) {
-                        return tag.name == createdTag;
-                    });
+                    if (typeof data !== 'undefined' && moment(viewvalue).isValid()) {
 
-                    if (createdTag.length > 0 && tagIsPresentInCurrentTags.length === 0) {
+                        if ($scope.type == 'datetime') {
+                            var value = moment({
+                                year: viewvalue.year,
+                                month: viewvalue.month - 1,
+                                date: viewvalue.date,
+                                hour: viewvalue.hour,
+                                minute: viewvalue.minute,
+                                second: viewvalue.second
+                            }).format('YYYY-MM-DD HH:mm:ss');
 
-                        // check if tag is present in the available tags array
-                        var tagIsPresentInAvailableTags = $scope.availableTags.filter(function(tag) {
-                            return tag.name == createdTag;
-                        });
+                        } else if ($scope.type == 'date') {
+                            var value = moment({
+                                year: viewvalue.year,
+                                month: viewvalue.month - 1,
+                                date: viewvalue.date
+                            }).format('YYYY-MM-DD');
+                        }
+                    } else {
 
-                        // Either fetch the tag from the current list of tags or create
-                        var newTag = tagIsPresentInAvailableTags.length === 1 ? tagIsPresentInAvailableTags[0] : new Tag({ id: null, name: createdTag, description: null });
+                        if ($scope.type == 'datetime') {
+                            var value = viewvalue.year + "-"
+                                + ("0" + viewvalue.month).slice(-2) + "-"
+                                + ("0" + viewvalue.date).slice(-2) + " "
+                                + ("0" + viewvalue.hour).slice(-2) + ":"
+                                + ("0" + viewvalue.minute).slice(-2) + ":"
+                                + ("0" + viewvalue.second).slice(-2);
 
-                        $scope.currentTags.push(newTag);
-
-                        // reset the input field
-                        $scope.tagInput = "";
-
-                        $scope.updateSuggestionList();
-                        $scope.updateInputLength();
-                    }
-                };
-
-                $scope.removeTag = function(removedTag) {
-                    $scope.currentTags.splice($scope.currentTags.indexOf(removedTag), 1);
-                    $scope.updateSuggestionList();
-                    $scope.updateInputLength();
-                };
-
-                $scope.tagInputKeydown = function(event) {
-                    // Currently using jQuery.event.which to detect keypresses, keyCode is deprecated, use KeyboardEvent.key eventually:
-                    // https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key
-
-                    // event.key == ' ' || event.key == 'Enter'
-                    if (event.which == 32 || event.which == 13) {
-                        event.preventDefault();
-
-                        $scope.createTag($scope.tagInput);
-
-                        // event.key == 'Backspace'
-                    } else if (event.which == 8 && $scope.tagInput == "") {
-                        event.preventDefault();
-
-                        // grab the last tag to be inserted (if any) and put it back in the input
-                        if ($scope.currentTags.length > 0) {
-                            $scope.tagInput = $scope.currentTags.pop().name;
+                        } else {
+                            var value = viewvalue.year + "-"
+                                + ("0" + viewvalue.month).slice(-2) + "-"
+                                + ("0" + viewvalue.date).slice(-2);
                         }
                     }
-                };
+                    return value;
+                });
 
-                $scope.updateInputLength = function() {
-                    $timeout(function() {
-                        $scope.inputLength = $(element).find('.wrapper').innerWidth() - $(element).find('.tag-wrapper').outerWidth() - 1;
-                    });
-                };
+                //convert data from model format to view format
+                ngModelController.$formatters.push(function(data) {
 
-                $scope.areSuggestionsVisible = false;
-                $scope.toggleSuggestionVisibility = function() {
-                    $scope.areSuggestionsVisible = $scope.currentTags.length  < 5 ? !$scope.areSuggestionsVisible : false;
-                };
+                    // If the value is not undefined and the value is valid,
+                    if (typeof data !== 'undefined' && moment(data).isValid()) {
 
-                $scope.updateSuggestionList = function() {
-                    var search = new RegExp($scope.tagInput, "i");
+                        var dt = moment(data);
 
-                    $scope.suggestions = $scope.availableTags.filter(function(availableTag) {
-                        if ($scope.currentTags.filter(function(currentTag) {
-                                return availableTag.name == currentTag.name;
-                            }).length == 0) {
-                            return search.test(availableTag.name);
+                        if ($scope.type == 'datetime') {
+                            return {
+                                year: dt.year(),
+                                month: dt.month() + 1,
+                                date: dt.date(),
+                                hour: dt.hour(),
+                                minute: dt.minute(),
+                                second: dt.second()
+                            }
+                        } else if ($scope.type == 'date') {
+                            return {
+                                year: dt.year(),
+                                month: dt.month() + 1,
+                                date: dt.date()
+                            }
                         }
-                        return false;
-                    }).slice(0,6);
+                    } else {
+
+                        if ($scope.type == 'datetime') {
+                            return {
+                                year: moment().year(),
+                                month: 0,
+                                date: 0,
+                                hour: 0,
+                                minute: 0,
+                                second: 0
+                            }
+                        } else if ($scope.type == 'date') {
+                            return {
+                                year: moment().year(),
+                                month: 0,
+                                date: 0
+                            }
+                        }
+                    }
+                });
+
+                ngModelController.$render = function() {
+                    $scope.year = ngModelController.$viewValue.year;
+                    $scope.month = ngModelController.$viewValue.month;
+                    $scope.date = ngModelController.$viewValue.date;
+
+                    if ($scope.type == 'datetime') {
+                        $scope.hour = ngModelController.$viewValue.hour;
+                        $scope.minute = ngModelController.$viewValue.minute;
+                        $scope.second = ngModelController.$viewValue.second;
+                    }
                 };
 
-                ctrl.$validators.taglength = function(modelValue, viewValue) {
-                    return viewValue.length > 0 && viewValue.length < 6;
+                $scope.dateIsComplete = function() {
+                    return $scope.month !== 0 && $scope.date !== 0;
                 };
 
-                $scope.$watch('currentTags', function() {
-                    ctrl.$validate();
-                }, true);
+                $scope.$watch('datetimevalue', function(value) {
+                    if (typeof value === null) {
+                        $scope.isNull = true;
+                    }
+                });
 
+                $scope.$watch('year + month + date + hour + minute + second + isNull', function() {
+                    ngModelController.$setViewValue({ year: $scope.year, month: $scope.month,date: $scope.date,hour: $scope.hour,minute: $scope.minute,second: $scope.second });
+                });
             },
-            templateUrl: '/js/templates/tags.html'
-        }
-    }]);
-
-    app.factory("Tag", function() {
-        return function(tag) {
-            var self = tag;
-
-            // Convert the tag to lowercase and replace all spaces present.
-            self.name = tag.name.toLowerCase().replace(/[^a-z0-9-]/g, "").substring(0, 50);
-
-            return self;
-        }
-    });
-})();
-
-
-(function() {
-    var app = angular.module('app');
-
-    app.directive('missionCard', function() {
-        return {
-            restrict: 'E',
-            replace: true,
-            scope: {
-                mission: '='
-            },
-            link: function($scope) {
-            },
-            templateUrl: '/js/templates/missionCard.html'
+            templateUrl: '/js/templates/datetime.html'
         }
     });
 })();
@@ -3038,221 +3213,437 @@
     });
 })();
 (function() {
-    var app = angular.module('app');
+    var app = angular.module('app', []);
 
-    app.directive('tweet', ["$http", function($http) {
+    app.directive("dropdown", function() {
         return {
             restrict: 'E',
+            require: '^ngModel',
             scope: {
-                tweet: '='
+                data: '=options',
+                uniqueKey: '@',
+                titleKey: '@',
+                imageKey: '@?',
+                descriptionKey: '@?',
+                searchable: '@',
+                placeholder: '@',
+                idOnly: '@?'
             },
             link: function($scope, element, attributes, ngModelCtrl) {
 
-                $scope.retrieveTweet = function() {
+                $scope.search = {
+                    name: ''
+                };
 
-                    // Check that the entered URL contains 'twitter' before sending a request (perform more thorough validation serverside)
-                    if (typeof $scope.tweet.external_url !== 'undefined' && $scope.tweet.external_url.indexOf('twitter.com') !== -1) {
+                $scope.thumbnails = angular.isDefined($scope.imageKey);
 
-                        var explodedVals = $scope.tweet.external_url.split('/');
-                        var id = explodedVals[explodedVals.length - 1];
+                ngModelCtrl.$viewChangeListeners.push(function() {
+                    $scope.$eval(attributes.ngChange);
+                });
 
-                        $http.get('/missioncontrol/create/retrievetweet?id=' + id).then(function(response) {
-                            // Set parameters
-                            $scope.tweet.tweet_id = id;
-                            $scope.tweet.tweet_text = response.data.text;
-                            $scope.tweet.tweet_user_profile_image_url = response.data.user.profile_image_url.replace("_normal", "");
-                            $scope.tweet.tweet_screen_name = response.data.user.screen_name;
-                            $scope.tweet.tweet_user_name = response.data.user.name;
-                            $scope.tweet.originated_at = moment(response.data.created_at, 'dddd MMM DD HH:mm:ss Z YYYY').utc().format('YYYY-MM-DD HH:mm:ss');
-
-                        });
-                    } else {
-                        $scope.tweet = {};
+                $scope.mapData = function() {
+                    if (!angular.isDefined($scope.data)) {
+                        return;
                     }
 
-                    if (angular.isDefined($scope.tweet.external_url)) {
-                        $scope.tweetRetrievedFromUrl = $scope.tweet.external_url.indexOf('twitter.com') !== -1;
+                    return $scope.data.map(function(option) {
+                        var props = {
+                            id: option[$scope.uniqueKey],
+                            name: option[$scope.titleKey],
+                            image: option[$scope.imageKey]
+                        };
+
+                        if (typeof $scope.descriptionKey !== 'undefined') {
+                            props.description = option[$scope.descriptionKey];
+                        }
+
+                        return props;
+                    });
+                };
+
+                $scope.options = $scope.mapData();
+
+                $scope.$watch("data", function() {
+                    $scope.options = $scope.mapData();
+                    ngModelCtrl.$setViewValue(ngModelCtrl.$viewValue);
+                });
+
+                ngModelCtrl.$render = function() {
+                    $scope.selectedOption = ngModelCtrl.$viewValue;
+                };
+
+                ngModelCtrl.$parsers.push(function(viewValue) {
+                    if ($scope.idOnly === 'true') {
+                        return viewValue.id;
                     } else {
-                        $scope.tweetRetrievedFromUrl = false;
+                        return viewValue;
                     }
-                }
+                });
+
+                ngModelCtrl.$formatters.push(function(modelValue) {
+                        if ($scope.idOnly === 'true' && angular.isDefined($scope.options)) {
+                            return $scope.options.filter(function(option) {
+                                return option.id = modelValue;
+                            }).shift();
+                        } else {
+                            return modelValue;
+                        }
+                });
+
+                $scope.selectOption = function(option) {
+                    $scope.selectedOption = option;
+                    ngModelCtrl.$setViewValue(option);
+                    $scope.dropdownIsVisible = false;
+                };
+
+                $scope.toggleDropdown = function() {
+                    $scope.dropdownIsVisible = !$scope.dropdownIsVisible;
+                    if (!$scope.dropdownIsVisible) {
+                        $scope.search.name = '';
+                    }
+                };
+
+                $scope.dropdownIsVisible = false;
             },
-            templateUrl: '/js/templates/tweet.html'
+            templateUrl: '/js/templates/dropdown.html'
+        }
+    });
+})();
+
+// Original jQuery countdown timer written by /u/EchoLogic, improved and optimized by /u/booOfBorg.
+// Rewritten as an Angular directive for SpaceXStats 4
+(function() {
+    var app = angular.module('app');
+
+    app.directive('launchDate', ['$interval', '$filter', function($interval, $filter) {
+        return {
+            restrict: 'E',
+            scope: {
+                launchSpecificity: '=',
+                launchDateTime: '='
+            },
+            link: function($scope, elem, attrs) {
+                /*
+                 *   Timezone stuff.
+                 */
+                // Get the IANA Timezone identifier and format it into a 3 letter timezone.
+                $scope.localTimezone = moment().tz(jstz.determine().name()).format('z');
+
+                // Set the format to be displayed based on the launch specificity
+                switch ($scope.launchSpecificity) {
+					case "6":
+                    case 6:
+                        $scope.currentFormat = 'MMMM d, yyyy';
+                        break;
+					case "7":
+                    case 7:
+                        $scope.currentFormat = 'h:mm:ssa MMMM d, yyyy';
+                        break;
+                    default:
+                        $scope.currentFormat = null;
+                }
+
+                $scope.currentTimezone = null;
+                $scope.currentTimezoneFormatted = "Local ("+ $scope.localTimezone +")";
+
+                $scope.setTimezone = function(timezoneToSet) {
+                    if (timezoneToSet === 'local') {
+                        $scope.currentTimezone = null;
+                        $scope.currentTimezoneFormatted = "Local ("+ $scope.localTimezone +")";
+                    } else if (timezoneToSet === 'ET') {
+                        $scope.currentTimezone = moment().tz("America/New_York").format('z');
+                        $scope.currentTimezoneFormatted = 'Eastern';
+                    } else if (timezoneToSet === 'PT') {
+                        $scope.currentTimezone = moment().tz("America/Los_Angeles").format('z');
+                        $scope.currentTimezoneFormatted = 'Pacific';
+                    } else {
+                        $scope.currentTimezoneFormatted = $scope.currentTimezone = 'UTC';
+                    }
+                };
+
+                $scope.isHoveringOverAlert = false;
+
+                $scope.hoveringOverAlert = function() {
+                    $scope.isHoveringOverAlert = !$scope.isHoveringOverAlert;
+                };
+
+                $scope.displayDateTime = function() {
+                    //if ($scope.isHoveringOverAlert) {
+                    //    return 'This launch has no time yet';
+                    //}
+                    if ($scope.launchSpecificity >= 6) {
+                        return $filter('date')(moment.utc($scope.launchDateTime, 'YYYY-MM-DD HH:mm:ss').toDate(), $scope.currentFormat, $scope.currentTimezone);
+                    } else {
+                        return $scope.launchDateTime;
+                    }
+
+                };
+            },
+            templateUrl: '/js/templates/launchDate.html'
         }
     }]);
 })();
 (function() {
     var app = angular.module('app');
 
-    app.directive('datetime', function() {
+    app.directive('launchDateValidity', [function() {
         return {
+            restrict: 'A',
             require: 'ngModel',
+            link: function($scope, element, attributes, ngModelCtrl) {
+
+                var subs = ['Early', 'Mid', 'Late'].join('|');
+                var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October',
+                'November', 'December'].join('|');
+                var quarters = ['Q1', 'Q2', 'Q3', 'Q4'].join('|');
+                var halfs = ['H1', 'H2'].join('|');
+
+
+                ngModelCtrl.$validators.launchDateValidity = function(value) {
+                    if (angular.isDefined(value) && value !== null) {
+                        // Check day and date specificities
+                        if (moment(value, 'YYYY-MM-DD H:mm:ss', true).isValid()) {
+                            return true;
+                        }
+
+                        // Submonth specificities
+                        var submonthRegex = new RegExp('^(' + subs + ') (' + months + ') \\d{4}$');
+                        // Month specificities
+                        var monthRegex = new RegExp('^(' + months + ') \\d{4}$');
+                        // Quarter specifities
+                        var quarterRegex = new RegExp('^(' + quarters + ') \\d{4}$');
+                        // Subyear specificities
+                        var subyearRegex = new RegExp('^(' + subs + ') \\d{4}$');
+                        // Half specificities
+                        var halfRegex = new RegExp('^(' + halfs + ') \\d{4}$');
+                        // Year specificities
+                        var yearRegex = new RegExp('^\\d{4}$');
+
+                        var regexes = [submonthRegex, monthRegex, quarterRegex, subyearRegex, halfRegex, yearRegex];
+
+                        regexes.every(function(regex) {
+                            if (regex.test(value)) {
+                                return true;
+                            }
+                        });
+                    }
+                    return false;
+                };
+            }
+        }
+    }]);
+})();
+(function() {
+    var app = angular.module('app');
+
+    app.directive('missionCard', function() {
+        return {
             restrict: 'E',
+            replace: true,
             scope: {
-                type: '@',
-                datetimevalue: '=ngModel',
-                startYear: '@',
-                isNull: '=',
-                disabled: '=?ngDisabled'
+                mission: '='
             },
-            link: function($scope, element, attrs, ngModelController) {
-
-                $scope.days = [];
-                $scope.days.push({ value: 0, display: '-'});
-
-                for (i = 1; i <= 31; i++) {
-                    $scope.days.push({ value: i, display: i });
-                }
-
-                $scope.months = [
-                    { value: 0, display: '-'},
-                    { value: 1, display: 'January'},
-                    { value: 2, display: 'February'},
-                    { value: 3, display: 'March'},
-                    { value: 4, display: 'April'},
-                    { value: 5, display: 'May'},
-                    { value: 6, display: 'June'},
-                    { value: 7, display: 'July'},
-                    { value: 8, display: 'August'},
-                    { value: 9, display: 'September'},
-                    { value: 10, display: 'October'},
-                    { value: 11, display: 'November'},
-                    { value: 12, display: 'December'}
-                ];
-
-                $scope.years = function() {
-                    var years = [];
-
-                    var currentYear = moment().year();
-                    var startYear = angular.isDefined($scope.startYear) ? $scope.startYear : 1950;
-
-                    while (currentYear >= startYear) {
-                        years.push(currentYear);
-                        currentYear--;
-                    }
-                    return years;
-                };
-
-                //convert data from view format to model format
-                ngModelController.$parsers.push(function(viewvalue) {
-
-                    if ($scope.isNull == true) {
-                        return null;
-                    }
-
-                    if (typeof data !== 'undefined' && moment(viewvalue).isValid()) {
-
-                        if ($scope.type == 'datetime') {
-                            var value = moment({
-                                year: viewvalue.year,
-                                month: viewvalue.month - 1,
-                                date: viewvalue.date,
-                                hour: viewvalue.hour,
-                                minute: viewvalue.minute,
-                                second: viewvalue.second
-                            }).format('YYYY-MM-DD HH:mm:ss');
-
-                        } else if ($scope.type == 'date') {
-                            var value = moment({
-                                year: viewvalue.year,
-                                month: viewvalue.month - 1,
-                                date: viewvalue.date
-                            }).format('YYYY-MM-DD');
-                        }
-                    } else {
-
-                        if ($scope.type == 'datetime') {
-                            var value = viewvalue.year + "-"
-                                + ("0" + viewvalue.month).slice(-2) + "-"
-                                + ("0" + viewvalue.date).slice(-2) + " "
-                                + ("0" + viewvalue.hour).slice(-2) + ":"
-                                + ("0" + viewvalue.minute).slice(-2) + ":"
-                                + ("0" + viewvalue.second).slice(-2);
-
-                        } else {
-                            var value = viewvalue.year + "-"
-                                + ("0" + viewvalue.month).slice(-2) + "-"
-                                + ("0" + viewvalue.date).slice(-2);
-                        }
-                    }
-                    return value;
-                });
-
-                //convert data from model format to view format
-                ngModelController.$formatters.push(function(data) {
-
-                    // If the value is not undefined and the value is valid,
-                    if (typeof data !== 'undefined' && moment(data).isValid()) {
-
-                        var dt = moment(data);
-
-                        if ($scope.type == 'datetime') {
-                            return {
-                                year: dt.year(),
-                                month: dt.month() + 1,
-                                date: dt.date(),
-                                hour: dt.hour(),
-                                minute: dt.minute(),
-                                second: dt.second()
-                            }
-                        } else if ($scope.type == 'date') {
-                            return {
-                                year: dt.year(),
-                                month: dt.month() + 1,
-                                date: dt.date()
-                            }
-                        }
-                    } else {
-
-                        if ($scope.type == 'datetime') {
-                            return {
-                                year: moment().year(),
-                                month: 0,
-                                date: 0,
-                                hour: 0,
-                                minute: 0,
-                                second: 0
-                            }
-                        } else if ($scope.type == 'date') {
-                            return {
-                                year: moment().year(),
-                                month: 0,
-                                date: 0
-                            }
-                        }
-                    }
-                });
-
-                ngModelController.$render = function() {
-                    $scope.year = ngModelController.$viewValue.year;
-                    $scope.month = ngModelController.$viewValue.month;
-                    $scope.date = ngModelController.$viewValue.date;
-
-                    if ($scope.type == 'datetime') {
-                        $scope.hour = ngModelController.$viewValue.hour;
-                        $scope.minute = ngModelController.$viewValue.minute;
-                        $scope.second = ngModelController.$viewValue.second;
-                    }
-                };
-
-                $scope.dateIsComplete = function() {
-                    return $scope.month !== 0 && $scope.date !== 0;
-                };
-
-                $scope.$watch('datetimevalue', function(value) {
-                    if (typeof value === null) {
-                        $scope.isNull = true;
-                    }
-                });
-
-                $scope.$watch('year + month + date + hour + minute + second + isNull', function() {
-                    ngModelController.$setViewValue({ year: $scope.year, month: $scope.month,date: $scope.date,hour: $scope.hour,minute: $scope.minute,second: $scope.second });
-                });
+            link: function($scope) {
             },
-            templateUrl: '/js/templates/datetime.html'
+            templateUrl: '/js/templates/missionCard.html'
         }
     });
 })();
+(function() {
+    var app = angular.module('app');
+
+    app.directive('objectCard', function() {
+        return {
+            restrict: 'E',
+            replace: true,
+            scope: {
+                object: '='
+            },
+            link: function($scope) {
+            },
+            templateUrl: '/js/templates/objectCard.html'
+        }
+    });
+})();
+//http://codepen.io/jakob-e/pen/eNBQaP
+(function() {
+    var app = angular.module('app');
+
+    app.directive('passwordToggle', ["$compile", function($compile) {
+        return {
+            restrict: 'A',
+            scope:{},
+            link: function(scope, elem, attrs){
+                scope.tgl = function() {
+                    elem.attr('type',(elem.attr('type')==='text'?'password':'text'));
+                };
+                var lnk = angular.element('<i class="fa fa-eye" data-ng-click="tgl()"></i>');
+                $compile(lnk)(scope);
+                elem.wrap('<div class="password-toggle"/>').after(lnk);
+            }
+        }
+    }]);
+})();
+
+(function() {
+    var app = angular.module('app');
+
+    app.directive('redditComment', ["$http", function($http) {
+        return {
+            replace: true,
+            restrict: 'E',
+            scope: {
+                redditComment: '=ngModel'
+            },
+            link: function($scope, element, attributes) {
+
+                $scope.retrieveRedditComment = function() {
+                    if (typeof $scope.redditComment.external_url !== "undefined") {
+                        $http.get('/missioncontrol/create/retrieveredditcomment?url=' + encodeURIComponent($scope.redditComment.external_url)).then(function(response) {
+
+                            // Set properties on object
+                            $scope.redditComment.summary = response.data.data.body;
+                            $scope.redditComment.author = response.data.data.author;
+                            $scope.redditComment.reddit_comment_id = response.data.data.name;
+                            $scope.redditComment.reddit_parent_id = response.data.data.parent_id; // make sure to check if the parent is a comment or not
+                            $scope.redditComment.reddit_subreddit = response.data.data.subreddit;
+                            $scope.redditComment.originated_at = moment.unix(response.data.data.created_utc).format();
+                        });
+                    }
+                }
+
+            },
+            templateUrl: '/js/templates/redditComment.html'
+        }
+    }]);
+})();
+(function() {
+    var app = angular.module('app', []);
+
+    app.directive("tags", ["Tag", "$timeout", function(Tag, $timeout) {
+        return {
+            require: 'ngModel',
+            replace: true,
+            restrict: 'E',
+            scope: {
+                availableTags: '=',
+                currentTags: '=ngModel'
+            },
+            link: function($scope, element, attributes, ctrl) {
+                $scope.suggestions = [];
+                $scope.inputWidth = {};
+                $scope.currentTags = typeof $scope.currentTags !== 'undefined' ? $scope.currentTags : [];
+
+                ctrl.$options = {
+                    allowInvalid: true
+                };
+
+                $scope.createTag = function(createdTag) {
+                    if ($scope.currentTags.length == 5 || angular.isUndefined(createdTag)) {
+                        return;
+                    }
+
+                    var tagIsPresentInCurrentTags = $scope.currentTags.filter(function(tag) {
+                        return tag.name == createdTag;
+                    });
+
+                    if (createdTag.length > 0 && tagIsPresentInCurrentTags.length === 0) {
+
+                        // check if tag is present in the available tags array
+                        var tagIsPresentInAvailableTags = $scope.availableTags.filter(function(tag) {
+                            return tag.name == createdTag;
+                        });
+
+                        // Either fetch the tag from the current list of tags or create
+                        var newTag = tagIsPresentInAvailableTags.length === 1 ? tagIsPresentInAvailableTags[0] : new Tag({ id: null, name: createdTag, description: null });
+
+                        $scope.currentTags.push(newTag);
+
+                        // reset the input field
+                        $scope.tagInput = "";
+
+                        $scope.updateSuggestionList();
+                        $scope.updateInputLength();
+                    }
+                };
+
+                $scope.removeTag = function(removedTag) {
+                    $scope.currentTags.splice($scope.currentTags.indexOf(removedTag), 1);
+                    $scope.updateSuggestionList();
+                    $scope.updateInputLength();
+                };
+
+                $scope.tagInputKeydown = function(event) {
+                    // Currently using jQuery.event.which to detect keypresses, keyCode is deprecated, use KeyboardEvent.key eventually:
+                    // https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key
+
+                    // event.key == ' ' || event.key == 'Enter'
+                    if (event.which == 32 || event.which == 13) {
+                        event.preventDefault();
+
+                        $scope.createTag($scope.tagInput);
+
+                        // event.key == 'Backspace'
+                    } else if (event.which == 8 && $scope.tagInput == "") {
+                        event.preventDefault();
+
+                        // grab the last tag to be inserted (if any) and put it back in the input
+                        if ($scope.currentTags.length > 0) {
+                            $scope.tagInput = $scope.currentTags.pop().name;
+                        }
+                    }
+                };
+
+                $scope.updateInputLength = function() {
+                    $timeout(function() {
+                        $scope.inputLength = $(element).find('.wrapper').innerWidth() - $(element).find('.tag-wrapper').outerWidth() - 1;
+                    });
+                };
+
+                $scope.areSuggestionsVisible = false;
+                $scope.toggleSuggestionVisibility = function() {
+                    $scope.areSuggestionsVisible = $scope.currentTags.length  < 5 ? !$scope.areSuggestionsVisible : false;
+                };
+
+                $scope.updateSuggestionList = function() {
+                    var search = new RegExp($scope.tagInput, "i");
+
+                    $scope.suggestions = $scope.availableTags.filter(function(availableTag) {
+                        if ($scope.currentTags.filter(function(currentTag) {
+                                return availableTag.name == currentTag.name;
+                            }).length == 0) {
+                            return search.test(availableTag.name);
+                        }
+                        return false;
+                    }).slice(0,6);
+                };
+
+                ctrl.$validators.taglength = function(modelValue, viewValue) {
+                    return viewValue.length > 0 && viewValue.length < 6;
+                };
+
+                $scope.$watch('currentTags', function() {
+                    ctrl.$validate();
+                }, true);
+
+            },
+            templateUrl: '/js/templates/tags.html'
+        }
+    }]);
+
+    app.factory("Tag", function() {
+        return function(tag) {
+            var self = tag;
+
+            // Convert the tag to lowercase and replace all spaces present.
+            self.name = tag.name.toLowerCase().replace(/[^a-z0-9-]/g, "").substring(0, 50);
+
+            return self;
+        }
+    });
+})();
+
+
 (function() {
 	var app = angular.module('app', ['720kb.datepicker']);
 
@@ -3584,405 +3975,6 @@
         return self;
     });
 })();
-//http://codepen.io/jakob-e/pen/eNBQaP
-(function() {
-    var app = angular.module('app');
-
-    app.directive('passwordToggle', ["$compile", function($compile) {
-        return {
-            restrict: 'A',
-            scope:{},
-            link: function(scope, elem, attrs){
-                scope.tgl = function() {
-                    elem.attr('type',(elem.attr('type')==='text'?'password':'text'));
-                };
-                var lnk = angular.element('<i class="fa fa-eye" data-ng-click="tgl()"></i>');
-                $compile(lnk)(scope);
-                elem.wrap('<div class="password-toggle"/>').after(lnk);
-            }
-        }
-    }]);
-})();
-
-(function() {
-    var app = angular.module('app');
-
-    app.directive('chart', ["$window", function($window) {
-        return {
-            replace: true,
-            restrict: 'E',
-            scope: {
-                data: '=data',
-                settings: "=",
-                type: '@'
-            },
-            link: function($scope, elem, attrs) {
-
-                $scope.$watch('data', function(newValue) {
-                    render(newValue);
-                }, true);
-
-                $scope.$on('chart:rerender', function() {
-                    elem.empty();
-                    render($scope.data);
-                });
-
-                function render(chartData) {
-                    if (!angular.isDefined(chartData) || chartData.length == 0) {
-                        return;
-                    }
-
-                    // Make a deep copy of the object as we may be doing manipulation
-                    // which would cause the watcher to fire
-                    var data = jQuery.extend(true, [], chartData);
-
-                    var d3 = $window.d3;
-                    var svg = d3.select(elem[0]);
-                    var width = elem.width();
-                    var height = elem.height();
-
-                    // Settings for rendering the chart
-                    var settings = $scope.settings;
-
-                    // Core information used to render the chart
-                    var core = {};
-
-                    // create a reasonable set of defaults for some things
-                    if (typeof settings.xAxis.ticks === 'undefined') {
-                        settings.xAxis.ticks = 5;
-                    }
-                    if (typeof settings.yAxis.ticks === 'undefined') {
-                        settings.yAxis.ticks = 5;
-                    }
-
-                    // check padding and set default
-                    if (typeof settings.padding === 'undefined') {
-                        settings.padding = 50;
-                    }
-
-                    // draw
-                    if ($scope.type == 'bar') {
-                        drawBarChart();
-                    } else {
-                        drawLineChart();
-                    }
-
-                    function drawChart() {
-                        // Element manipulation
-                        var xAxisLine = svg.append("svg:g")
-                            .attr("class", "x axis")
-                            .attr("transform", "translate(0," + (height - settings.padding) + ")")
-                            .call(core.xAxisGenerator);
-
-                        var yAxisLine = svg.append("svg:g")
-                            .attr("class", "y axis")
-                            .attr("transform", "translate(" + settings.padding + ",0)")
-                            .attr("stroke-width", 2)
-                            .call(core.yAxisGenerator);
-
-                        svg.append("text")
-                            .attr("class", "chart-title")
-                            .attr("text-anchor", "middle")
-                            .attr("x", width / 2)
-                            .attr("y", settings.padding / 2)
-                            .text(settings.chartTitle);
-
-                        svg.append("text")
-                            .attr("class", "axis x-axis")
-                            .attr("text-anchor", "middle")
-                            .attr("x", width / 2)
-                            .attr("y", height)
-                            .text(settings.xAxis.title);
-
-                        svg.append("text")
-                            .attr("class", "axis y-axis")
-                            .attr("text-anchor", "middle")
-                            .attr("transform", "rotate(-90)")
-                            .attr("x", - (height / 2))
-                            .attr("y", settings.padding / 2)
-                            .text(settings.yAxis.title);
-                    }
-
-                    function computeChart() {
-                        // Setup xZeroing
-                        var startPoint = settings.xAxis.zeroing ? 0 : data[0][settings.xAxis.key];
-
-                        // Setup xScales
-                        if (settings.xAxis.type == 'linear') {
-                            core.xScale = d3.scale.linear()
-                                .domain([startPoint, data[data.length-1][settings.xAxis.key]])
-                                .range([settings.padding, width - settings.padding]);
-
-                        } else if (settings.xAxis.type == 'timescale') {
-                            core.xScale = d3.time.scale.utc()
-                                .domain([startPoint, data[data.length-1][settings.xAxis.key]])
-                                .range([settings.padding, width - settings.padding]);
-
-                        } else if (settings.xAxis.type == 'ordinal') {
-
-                            core.xScale = d3.scale.ordinal()
-                                .domain(data.map(function(dataBit) { return dataBit[settings.xAxis.key]; }))
-                                .rangeRoundBands([settings.padding, width - settings.padding], 0.5);
-                        }
-
-                        // setup yZeroing
-                        var startPoint = settings.yAxis.zeroing ? 0 : data[0][settings.yAxis.key];
-
-                        // setup yScales
-                        if (settings.yAxis.type == 'linear') {
-                            core.yScale = d3.scale.linear()
-                                .domain([d3.max(data, function(d) {
-                                    if (typeof d[settings.yAxis.key] === 'string') {
-                                        return parseFloat(d[settings.yAxis.key]);
-                                    }
-                                    return d[settings.yAxis.key];
-                                }), startPoint])
-                                .range([settings.padding, height - settings.padding]);
-
-                        } else if (settings.yAxis.type == 'timescale') {
-                            core.yScale = d3.time.scale.utc()
-                                .domain([d3.max(data, function(d) {
-                                    return d[settings.yAxis.key];
-                                }), startPoint])
-                                .range([settings.padding, height - settings.padding]);
-                        }
-
-                        // Generators
-                        core.xAxisGenerator = d3.svg.axis().scale(core.xScale).orient('bottom').ticks(settings.xAxis.ticks).tickFormat(function(d) {
-                            return typeof settings.xAxis.formatter !== 'undefined' ? settings.xAxis.formatter(d) : d;
-                        });
-
-                        core.yAxisGenerator = d3.svg.axis().scale(core.yScale).orient("left").ticks(settings.yAxis.ticks).tickFormat(function(d) {
-                            return typeof settings.yAxis.formatter !== 'undefined' ? settings.yAxis.formatter(d) : d;
-                        });
-                    };
-
-                    function drawBarChart() {
-
-                        computeChart();
-
-                        svg.selectAll("bar")
-                            .data(data)
-                            .enter().append("rect")
-                            .style("fill", "steelblue")
-                            .attr("x", function(d) {
-                                return core.xScale(d[settings.xAxis.key]);
-                            })
-                            .attr("width", core.xScale.rangeBand())
-                            .attr("y", function(d) {
-                                return core.yScale(d[settings.yAxis.key]);
-                            })
-                            .attr("height", function(d) {
-                                return height - core.yScale(d[settings.yAxis.key]) - settings.padding;
-                            });
-
-                        drawChart();
-                    };
-
-                    function drawLineChart() {
-
-                        computeChart();
-
-                        // Line function
-                        var lineFunction = d3.svg.line()
-                            .x(function(d) {
-                                return core.xScale(d[settings.xAxis.key]);
-                            })
-                            .y(function(d) {
-                                return core.yScale(d[settings.yAxis.key]);
-                            })
-                            .interpolate(settings.interpolation);
-
-                        svg.append("svg:path")
-                            .attr({
-                                d: lineFunction(data),
-                                "stroke-width": 2,
-                                "fill": "none",
-                                "class": "path"
-                            });
-
-                        drawChart();
-                    };
-                }
-
-            },
-            templateUrl: '/js/templates/chart.html'
-        }
-    }]);
-})();
-(function() {
-    var app = angular.module('app');
-
-    app.directive('redditComment', ["$http", function($http) {
-        return {
-            replace: true,
-            restrict: 'E',
-            scope: {
-                redditComment: '=ngModel'
-            },
-            link: function($scope, element, attributes) {
-
-                $scope.retrieveRedditComment = function() {
-                    if (typeof $scope.redditComment.external_url !== "undefined") {
-                        $http.get('/missioncontrol/create/retrieveredditcomment?url=' + encodeURIComponent($scope.redditComment.external_url)).then(function(response) {
-
-                            // Set properties on object
-                            $scope.redditComment.summary = response.data.data.body;
-                            $scope.redditComment.author = response.data.data.author;
-                            $scope.redditComment.reddit_comment_id = response.data.data.name;
-                            $scope.redditComment.reddit_parent_id = response.data.data.parent_id; // make sure to check if the parent is a comment or not
-                            $scope.redditComment.reddit_subreddit = response.data.data.subreddit;
-                            $scope.redditComment.originated_at = moment.unix(response.data.data.created_utc).format();
-                        });
-                    }
-                }
-
-            },
-            templateUrl: '/js/templates/redditComment.html'
-        }
-    }]);
-})();
-(function() {
-    var app = angular.module('app', []);
-
-    app.directive("dropdown", function() {
-        return {
-            restrict: 'E',
-            require: '^ngModel',
-            scope: {
-                data: '=options',
-                uniqueKey: '@',
-                titleKey: '@',
-                imageKey: '@?',
-                descriptionKey: '@?',
-                searchable: '@',
-                placeholder: '@',
-                idOnly: '@?'
-            },
-            link: function($scope, element, attributes, ngModelCtrl) {
-
-                $scope.search = {
-                    name: ''
-                };
-
-                $scope.thumbnails = angular.isDefined($scope.imageKey);
-
-                ngModelCtrl.$viewChangeListeners.push(function() {
-                    $scope.$eval(attributes.ngChange);
-                });
-
-                $scope.mapData = function() {
-                    if (!angular.isDefined($scope.data)) {
-                        return;
-                    }
-
-                    return $scope.data.map(function(option) {
-                        var props = {
-                            id: option[$scope.uniqueKey],
-                            name: option[$scope.titleKey],
-                            image: option[$scope.imageKey]
-                        };
-
-                        if (typeof $scope.descriptionKey !== 'undefined') {
-                            props.description = option[$scope.descriptionKey];
-                        }
-
-                        return props;
-                    });
-                };
-
-                $scope.options = $scope.mapData();
-
-                $scope.$watch("data", function() {
-                    $scope.options = $scope.mapData();
-                    ngModelCtrl.$setViewValue(ngModelCtrl.$viewValue);
-                });
-
-                ngModelCtrl.$render = function() {
-                    $scope.selectedOption = ngModelCtrl.$viewValue;
-                };
-
-                ngModelCtrl.$parsers.push(function(viewValue) {
-                    if ($scope.idOnly === 'true') {
-                        return viewValue.id;
-                    } else {
-                        return viewValue;
-                    }
-                });
-
-                ngModelCtrl.$formatters.push(function(modelValue) {
-                        if ($scope.idOnly === 'true' && angular.isDefined($scope.options)) {
-                            return $scope.options.filter(function(option) {
-                                return option.id = modelValue;
-                            }).shift();
-                        } else {
-                            return modelValue;
-                        }
-                });
-
-                $scope.selectOption = function(option) {
-                    $scope.selectedOption = option;
-                    ngModelCtrl.$setViewValue(option);
-                    $scope.dropdownIsVisible = false;
-                };
-
-                $scope.toggleDropdown = function() {
-                    $scope.dropdownIsVisible = !$scope.dropdownIsVisible;
-                    if (!$scope.dropdownIsVisible) {
-                        $scope.search.name = '';
-                    }
-                };
-
-                $scope.dropdownIsVisible = false;
-            },
-            templateUrl: '/js/templates/dropdown.html'
-        }
-    });
-})();
-
-(function() {
-    var app = angular.module('app');
-
-    app.directive('uniqueUsername', ["$q", "$http", function($q, $http) {
-        return {
-            restrict: 'A',
-            require: 'ngModel',
-            link: function(scope, elem, attrs, ngModelCtrl) {
-                ngModelCtrl.$asyncValidators.username = function(modelValue, viewValue) {
-                    return $http.get('/auth/isusernametaken/' + modelValue).then(function(response) {
-                        return response.data.taken ? $q.reject() : true;
-                    });
-                };
-            }
-        }
-    }]);
-})();
-
-(function() {
-    var app = angular.module('app');
-
-    app.directive('characterCounter', ["$compile", function($compile) {
-        return {
-            restrict: 'A',
-            require: 'ngModel',
-            link: function($scope, element, attributes, ngModelCtrl) {
-                var counter = angular.element('<p class="character-counter" ng-class="{ red: isInvalid }">{{ characterCounterStatement }}</p>');
-                $compile(counter)($scope);
-                element.after(counter);
-
-                ngModelCtrl.$parsers.push(function(viewValue) {
-                    $scope.isInvalid = ngModelCtrl.$invalid;
-                    if (attributes.ngMinlength > ngModelCtrl.$viewValue.length) {
-                        $scope.characterCounterStatement = attributes.ngMinlength - ngModelCtrl.$viewValue.length + ' to go';
-                    } else if (attributes.ngMinlength <= ngModelCtrl.$viewValue.length) {
-                        $scope.characterCounterStatement = ngModelCtrl.$viewValue.length + ' characters';
-                    }
-                    return viewValue;
-                });
-            }
-        }
-    }]);
-})();
 (function() {
     var app = angular.module('app', []);
 
@@ -4111,68 +4103,116 @@
 (function() {
     var app = angular.module('app');
 
-    app.directive('launchDateValidity', [function() {
+    app.directive('tweet', ["$http", function($http) {
         return {
-            restrict: 'A',
-            require: 'ngModel',
+            restrict: 'E',
+            scope: {
+                tweet: '='
+            },
             link: function($scope, element, attributes, ngModelCtrl) {
 
-                var subs = ['Early', 'Mid', 'Late'].join('|');
-                var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October',
-                'November', 'December'].join('|');
-                var quarters = ['Q1', 'Q2', 'Q3', 'Q4'].join('|');
-                var halfs = ['H1', 'H2'].join('|');
+                $scope.retrieveTweet = function() {
 
+                    // Check that the entered URL contains 'twitter' before sending a request (perform more thorough validation serverside)
+                    if (typeof $scope.tweet.external_url !== 'undefined' && $scope.tweet.external_url.indexOf('twitter.com') !== -1) {
 
-                ngModelCtrl.$validators.launchDateValidity = function(value) {
-                    if (angular.isDefined(value) && value !== null) {
-                        // Check day and date specificities
-                        if (moment(value, 'YYYY-MM-DD H:mm:ss', true).isValid()) {
-                            return true;
-                        }
+                        var explodedVals = $scope.tweet.external_url.split('/');
+                        var id = explodedVals[explodedVals.length - 1];
 
-                        // Submonth specificities
-                        var submonthRegex = new RegExp('^(' + subs + ') (' + months + ') \\d{4}$');
-                        // Month specificities
-                        var monthRegex = new RegExp('^(' + months + ') \\d{4}$');
-                        // Quarter specifities
-                        var quarterRegex = new RegExp('^(' + quarters + ') \\d{4}$');
-                        // Subyear specificities
-                        var subyearRegex = new RegExp('^(' + subs + ') \\d{4}$');
-                        // Half specificities
-                        var halfRegex = new RegExp('^(' + halfs + ') \\d{4}$');
-                        // Year specificities
-                        var yearRegex = new RegExp('^\\d{4}$');
+                        $http.get('/missioncontrol/create/retrievetweet?id=' + id).then(function(response) {
+                            // Set parameters
+                            $scope.tweet.tweet_id = id;
+                            $scope.tweet.tweet_text = response.data.text;
+                            $scope.tweet.tweet_user_profile_image_url = response.data.user.profile_image_url.replace("_normal", "");
+                            $scope.tweet.tweet_screen_name = response.data.user.screen_name;
+                            $scope.tweet.tweet_user_name = response.data.user.name;
+                            $scope.tweet.originated_at = moment(response.data.created_at, 'dddd MMM DD HH:mm:ss Z YYYY').utc().format('YYYY-MM-DD HH:mm:ss');
 
-                        var regexes = [submonthRegex, monthRegex, quarterRegex, subyearRegex, halfRegex, yearRegex];
-
-                        regexes.every(function(regex) {
-                            if (regex.test(value)) {
-                                return true;
-                            }
                         });
+                    } else {
+                        $scope.tweet = {};
                     }
-                    return false;
-                };
-            }
+
+                    if (angular.isDefined($scope.tweet.external_url)) {
+                        $scope.tweetRetrievedFromUrl = $scope.tweet.external_url.indexOf('twitter.com') !== -1;
+                    } else {
+                        $scope.tweetRetrievedFromUrl = false;
+                    }
+                }
+            },
+            templateUrl: '/js/templates/tweet.html'
         }
     }]);
 })();
 (function() {
     var app = angular.module('app');
 
-    app.directive('objectCard', function() {
+    app.directive('uniqueUsername', ["$q", "$http", function($q, $http) {
         return {
-            restrict: 'E',
-            replace: true,
-            scope: {
-                object: '='
-            },
-            link: function($scope) {
-            },
-            templateUrl: '/js/templates/objectCard.html'
+            restrict: 'A',
+            require: 'ngModel',
+            link: function(scope, elem, attrs, ngModelCtrl) {
+                ngModelCtrl.$asyncValidators.username = function(modelValue, viewValue) {
+                    return $http.get('/auth/isusernametaken/' + modelValue).then(function(response) {
+                        return response.data.taken ? $q.reject() : true;
+                    });
+                };
+            }
         }
-    });
+    }]);
+})();
+
+(function() {
+    var app = angular.module('app');
+
+    app.directive('upload', ['$parse', function($parse) {
+        return {
+            restrict: 'A',
+            link: function($scope, element, attrs) {
+
+                // Initialize the dropzone
+                var dropzone = new Dropzone(element[0], {
+                    url: attrs.action,
+                    autoProcessQueue: false,
+                    dictDefaultMessage: "Upload files here!",
+                    maxFilesize: 1024, // MB
+                    addRemoveLinks: true,
+                    uploadMultiple: attrs.multiUpload,
+                    parallelUploads: 5,
+                    maxFiles: 5,
+                    successmultiple: function(dropzoneStatus, files) {
+
+                        $scope.files = files.objects;
+
+                        // Run a callback function with the files passed through as a parameter
+                        if (typeof attrs.callback !== 'undefined' && attrs.callback !== "") {
+                            var func = $parse(attrs.callback);
+                            func($scope, { files: files });
+                        }
+                    },
+                    error: function() {
+                        $scope.isUploading = false;
+                    }
+                });
+
+                dropzone.on("addedfile", function(file) {
+                    ++$scope.queuedFiles;
+                    $scope.$apply();
+                });
+
+                dropzone.on("removedfile", function(file) {
+                    --$scope.queuedFiles;
+                    $scope.$apply();
+                });
+
+                // upload the files
+                $scope.uploadFiles = function() {
+                    $scope.isUploading = true;
+                    dropzone.processQueue();
+                }
+            }
+        }
+    }]);
 })();
 (function() {
     var app = angular.module('app');

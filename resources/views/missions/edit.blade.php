@@ -148,22 +148,61 @@
                                 <button ng-click="mission.addPartFlight(filters.parts.type, part)">Reuse This @{{ filters.parts.type }}</button>
                             </div>
 
-                            <button ng-click="mission.addPartFlight(filters.parts.type)">Create A @{{ filters.parts.type }}</button>
+                            <button ng-click="showAddPart = true">Create A @{{ filters.parts.type }}</button>
+							<div ng-show="showAddPart">
+								<fieldset>
+									<label>Name</label>
+									<input type="text" ng-model="partFlight.part.name" />
+
+									<div ng-if="filters.parts.type == 'Booster' || filters.parts.type == 'First Stage'">
+										<label>Engine</label>
+										<select ng-model="partFlight.firststage_engine" ng-options="firstStageEngine for firstStageEngine in data.firstStageEngines"></select>
+										
+										<ul class="container">
+											<li class="gr-2">
+												<span>Landing Legs</span>
+												<input type="checkbox" id="landingLegs" ng-model="partFlight.firststage_landing_legs" />
+												<label for="landingLegs"></label>
+											</li>
+											<li class="gr-2">
+												<span>Grid Fins</span>
+												<input type="checkbox" id="gridFins" ng-model="partFlight.firststage_grid_fins" />
+												<label for="gridFins"></label>
+											</li>
+										</ul>
+									</div>
+
+
+									<div ng-if="filters.parts.type == 'Upper Stage'">
+										<label>Engine</label>
+										<select ng-model="partFlight.upperstage_engine" ng-options="upperStageEngine for upperStageEngine in data.upperStageEngines"></select>
+									</div>
+								</fieldset>
+								<button ng-click="addPartFlight(partFlight)">Add</button>
+								<button ng-click="showAddPart = false">Cancel</button>
+							</div>
                         </div>
                     </div>
 
-                    <div ng-repeat="partFlight in mission.part_flights">
+                    <div ng-repeat="partFlight in mission.data.part_flights track by $index">
                         <h3>@{{ partFlight.part.name }}</h3>
 
                         <label>Name</label>
                         <input type="text" ng-model="partFlight.part.name" />
 
                         <div ng-if="partFlight.part.type == 'Booster' || partFlight.part.type == 'First Stage'">
-                            <label>Landing Legs?</label>
-                            <input type="checkbox" ng-model="partFlight.firststage_landing_legs" />
-
-                            <label>Grid Fins?</label>
-                            <input type="checkbox" ng-model="partFlight.firststage_grid_fins" />
+                            <ul class="container">
+								<li class="gr-2">
+									<span>Landing Legs</span>
+									<input type="checkbox" ng-attr-id="@{{'landingLegs' + $index}}" ng-checked="partFlight.firststage_landing_legs == 1" ng-true-value="1" ng-false-value="0" ng-model="partFlight.firststage_landing_legs" />
+									<label for="@{{'landingLegs' + $index}}"></label>
+								</li>
+								<li class="gr-2">
+									<span>Grid Fins</span>
+									<input type="checkbox" ng-attr-id="@{{'gridFins' + $index}}" ng-checked="partFlight.firststage_grid_fins == 1"  ng-true-value="1" ng-false-value="0" ng-model="partFlight.firststage_grid_fins" />
+									<label for="@{{'gridFins' + $index}}"></label>
+								</li>
+							</ul>
 
                             <label>Engine</label>
                             <select ng-model="partFlight.firststage_engine" ng-options="firstStageEngine for firstStageEngine in data.firstStageEngines"></select>
@@ -198,7 +237,7 @@
                             <input type="text" ng-model="partFlight.upperstage_seco"/>
 
                             <label>Decay Date</label>
-                            <datetime ng-model="partFlight.decay_date" type="date" start-year="2002" is-null="true" nullable-toggle="true"></datetime>
+                            <datetime ng-model="partFlight.upperstage_decay_date" type="date" start-year="2002" is-null="true" nullable-toggle="true"></datetime>
 
                             <label>NORAD ID</label>
                             <input type="text" ng-model="partFlight.upperstage_norad_id" />
@@ -207,9 +246,11 @@
                             <input type="text" ng-model="partFlight.upperstage_intl_designator" />
                         </div>
 
-                        <label>Landed?</label>
-                        <input type="checkbox" value="true" ng-model="partFlight.landed"/>
-
+						<li class="gr-2">
+							<span>Landed?</span>
+							<input type="checkbox" ng-attr-id="@{{'landed' + $index}}" ng-checked="partFlight.landed == 1"  ng-true-value="1" ng-false-value="0" ng-model="partFlight.landed" />
+							<label for="@{{'landed' + $index}}"></label>
+						</li>
                         <label>Notes</label>
                         <textarea ng-model="partFlight.note"></textarea>
 

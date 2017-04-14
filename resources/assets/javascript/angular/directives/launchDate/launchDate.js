@@ -19,9 +19,11 @@
 
                 // Set the format to be displayed based on the launch specificity
                 switch ($scope.launchSpecificity) {
+					case "6":
                     case 6:
                         $scope.currentFormat = 'MMMM d, yyyy';
                         break;
+					case "7":
                     case 7:
                         $scope.currentFormat = 'h:mm:ssa MMMM d, yyyy';
                         break;
@@ -54,9 +56,9 @@
                 };
 
                 $scope.displayDateTime = function() {
-                    if ($scope.isHoveringOverAlert) {
-                        return 'This launch has no time yet';
-                    }
+                    //if ($scope.isHoveringOverAlert) {
+                    //    return 'This launch has no time yet';
+                    //}
                     if ($scope.launchSpecificity >= 6) {
                         return $filter('date')(moment.utc($scope.launchDateTime, 'YYYY-MM-DD HH:mm:ss').toDate(), $scope.currentFormat, $scope.currentTimezone);
                     } else {

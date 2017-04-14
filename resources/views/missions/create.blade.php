@@ -83,11 +83,43 @@
                                 <button ng-click="mission.addPartFlight(filters.parts.type, part)">Reuse This @{{ filters.parts.type }}</button>
                             </div>
 
-                            <button ng-click="mission.addPartFlight(filters.parts.type)">Create A @{{ filters.parts.type }}</button>
+                            <button ng-click="showAddPart = true">Create A @{{ filters.parts.type }}</button>
+							<div ng-show="showAddPart">
+								<fieldset>
+									<label>Name</label>
+									<input type="text" ng-model="partFlight.part.name" />
+
+									<div ng-if="filters.parts.type == 'Booster' || filters.parts.type == 'First Stage'">
+										<label>Engine</label>
+										<select ng-model="partFlight.firststage_engine" ng-options="firstStageEngine for firstStageEngine in data.firstStageEngines"></select>
+										
+										<ul class="container">
+											<li class="gr-2">
+												<span>Landing Legs</span>
+												<input type="checkbox" id="landingLegs" ng-model="partFlight.firststage_landing_legs" />
+												<label for="landingLegs"></label>
+											</li>
+											<li class="gr-2">
+												<span>Grid Fins</span>
+												<input type="checkbox" id="gridFins" ng-model="partFlight.firststage_grid_fins" />
+												<label for="gridFins"></label>
+											</li>
+										</ul>
+									</div>
+
+
+									<div ng-if="filters.parts.type == 'Upper Stage'">
+										<label>Engine</label>
+										<select ng-model="partFlight.upperstage_engine" ng-options="upperStageEngine for upperStageEngine in data.upperStageEngines"></select>
+									</div>
+								</fieldset>
+								<button ng-click="addPartFlight(partFlight)">Add</button>
+								<button ng-click="showAddPart = false">Cancel</button>
+							</div>
                         </div>
                     </div>
 
-                    <div ng-repeat="partFlight in mission.part_flights">
+                    <div ng-repeat="partFlight in mission.data.part_flights track by $index">
                         <h3>@{{ partFlight.part.name }}</h3>
 
                         <label>Name</label>
@@ -96,6 +128,19 @@
                         <div ng-if="partFlight.part.type == 'Booster' || partFlight.part.type == 'First Stage'">
                             <label>Engine</label>
                             <select ng-model="partFlight.firststage_engine" ng-options="firstStageEngine for firstStageEngine in data.firstStageEngines"></select>
+							
+							<ul class="container">
+								<li class="gr-2">
+									<span>Landing Legs</span>
+									<input type="checkbox" ng-attr-id="@{{'landingLegs' + $index}}" ng-model="partFlight.firststage_landing_legs" />
+									<label for="@{{'landingLegs' + $index}}"></label>
+								</li>
+								<li class="gr-2">
+									<span>Grid Fins</span>
+									<input type="checkbox" ng-attr-id="@{{'gridFins' + $index}}" ng-model="partFlight.firststage_grid_fins" />
+									<label for="@{{'gridFins' + $index}}"></label>
+								</li>
+							</ul>
                         </div>
 
 
@@ -205,7 +250,7 @@
                     </div>
                 </fieldset>
 
-                <input type="submit" ng-click="createMission(mission)" ng-disabled="createMissionForm.$invalid" value="Create Mission"/>
+                <input type="submit" ng-click="mission.make()" ng-disabled="createMissionForm.$invalid" value="Create Mission"/>
             </form>
         </main>
     </div>

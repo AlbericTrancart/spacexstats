@@ -27,6 +27,8 @@ Deployment is done via SFTP using WinSCP.
 1. Modify **sftp_deploy_example.txt** with your SFTP connection info (username, password, rsa key) and save the file as **sftp_deploy.txt**.
 2. In the command prompt, simply type `deploy` and all files will be copied to the server
 
+##### Editing Assets
+When editing JS, CSS, etc files, you'll use gulp to compile these assets.
 
 ##### Useful commands
 `php artisan cache:clear` or on linux `php artisan cache:clear` - clears the laravel cache, useful after db changes that you want to see reflected immediately. May affect site performance as cache is rebuilt.

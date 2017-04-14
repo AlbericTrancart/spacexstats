@@ -18,7 +18,7 @@
             <div>{{ mission.launch_site }}</div>
             <div ng-if="mission.status == 'Complete' && mission.outcome == 'Success'">{{ mission.successful_consecutive_launch }}</div>
             <!--<div ng-if="mission.status == 'Upcoming'">
-                {{ mission.launch_probability }}%s
+                {{ mission.launch_probability }}%
             </div>-->
             <div ng-if="mission.status == 'Complete'">
                 <img class="launch-illumination" ng-src="/images/icons/illuminations/{{ mission.launch_illumination }}.png" /></div>
