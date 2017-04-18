@@ -2,6 +2,9 @@
     var app = angular.module('app', []);
 
     app.controller("missionController", ['$scope', 'missionService', function($scope, missionService) {
+		if(typeof(laravel.mission.launch_specificity) != 'undefined'){
+			laravel.mission.launch_specificity = parseInt(laravel.mission.launch_specificity);
+		}
 		$scope.showAddPart = false;
 		$scope.partFlight = {};
         // Scope the possible form data info

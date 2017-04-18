@@ -17,7 +17,7 @@
 					<div class="gr-12">@{{mission.name}}</div>
 					<div class="gr-3"><input type="number" ng-model="mission.launch_order_id"/></div>
 					<div class="gr-3">@{{mission.launch_date_time}}</div>
-					<div class="gr-12"><button style="line-height: 12px; font-size: 12px;" ng-click="incrementRemaining(mission.launch_order_id)" >Incremement Remaining</button></div>
+					<div class="gr-12"><button style="line-height: 12px; font-size: 12px;" ng-click="incrementRemaining(mission.mission_id, mission.launch_order_id)" >Incremement Remaining</button></div>
 				</div>
             </section>
         </main>
