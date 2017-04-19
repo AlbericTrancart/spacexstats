@@ -145,7 +145,7 @@
                         <div ng-show="filters.parts.type !== ''">
                             <div ng-repeat="part in data.parts | filter:filters.parts">
                                 <span>@{{ part.name }}</span>
-                                <button ng-click="mission.addPartFlight(filters.parts.type, part)">Reuse This @{{ filters.parts.type }}</button>
+                                <button ng-click="reusePart(part)">Reuse This @{{ filters.parts.type }}</button>
                             </div>
 
                             <button ng-click="showAddPart = true">Create A @{{ filters.parts.type }}</button>
