@@ -2,7 +2,7 @@
     var app = angular.module('app', []);
 
     app.controller("missionController", ['$scope', 'missionService', function($scope, missionService) {
-		if(typeof(laravel.mission.launch_specificity) != 'undefined'){
+		if(typeof(laravel.mission) != 'undefined' && typeof(laravel.mission.launch_specificity) != 'undefined'){
 			laravel.mission.launch_specificity = parseInt(laravel.mission.launch_specificity);
 		}
 		$scope.showAddPart = false;
@@ -68,6 +68,12 @@
 			this.partFlight = {};
 			this.showAddPart = false;
 		}
+		
+		$scope.reusePart = function(part){
+			$scope.partFlight = {};
+			$scope.partFlight.part = part;
+			$scope.showAddPart = true;
+		}
     }]);
 
     app.service("missionService", ["$http", "CSRF_TOKEN", function($http, CSRF_TOKEN) {
@@ -84,7 +90,7 @@
                     mission: mission,
                     _token: CSRF_TOKEN
                 }).then(function(response){
-					console.log(response);
+					window.location = '/missions/' + response.data;
 				});;
             }
         };
