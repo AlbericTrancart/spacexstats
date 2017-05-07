@@ -56,8 +56,10 @@ class StatisticResultBuilder {
             });
         }
 
-        if ($substatistic === 'MCT') {
-            return 0;
+        if ($substatistic === 'BFR') {
+            return Cache::remember('stats:launchCount:bfr', 60, function() {
+                return Mission::whereComplete()->whereGenericVehicle('BFR')->count();
+            });
         }
 	}
 
@@ -238,7 +240,7 @@ class StatisticResultBuilder {
 			} catch (ModelNotFoundException $e) {
 				return false;
 			}
-			return $nextLaunch;			
+			return $nextLaunch;
 		}
 	}
 
@@ -298,7 +300,7 @@ class StatisticResultBuilder {
 			} catch (ModelNotFoundException $e) {
 				return false;
 			}
-			return $nextLaunch;			
+			return $nextLaunch;
 		}
 	}
 
@@ -328,7 +330,7 @@ class StatisticResultBuilder {
 			} catch (ModelNotFoundException $e) {
 				return false;
 			}
-			return $nextLaunch;			
+			return $nextLaunch;
 		}
 	}
 
