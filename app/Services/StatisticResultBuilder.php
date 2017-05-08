@@ -56,7 +56,7 @@ class StatisticResultBuilder {
             });
         }
 
-        if ($substatistic === 'BFR') {
+        if ($substatistic === 'BFR' || $substatistic === 'ITS') {
             return Cache::remember('stats:launchCount:bfr', 60, function() {
                 return Mission::whereComplete()->whereGenericVehicle('BFR')->count();
             });
@@ -173,7 +173,7 @@ class StatisticResultBuilder {
 
         if ($substatistic == 'Reflown') {
             return Cache::remember('stats:vehicles:reflown', 60, function() {
-                return DB::select(DB::raw("SELECT COALESCE(SUM(reflights), 0) as total_flights FROM (SELECT COUNT(*)-1 as reflights FROM parts JOIN part_flights_pivot ON parts.part_id = part_flights_pivot.part_id WHERE parts.part_id=part_flights_pivot.part_id GROUP BY part_flights_pivot.part_id HAVING reflights > 0) reflights"))[0]->total_flights;
+                return DB::select(DB::raw("SELECT COALESCE(SUM(reflights), 0) as total_flights FROM (SELECT COUNT(*)-1 as reflights FROM parts JOIN part_flights_pivot ON parts.part_id = part_flights_pivot.part_id JOIN missions on missions.mission_id = part_flights_pivot.mission_id WHERE parts.part_id=part_flights_pivot.part_id AND missions.outcome = 'Success' GROUP BY part_flights_pivot.part_id HAVING reflights > 0) reflights"))[0]->total_flights;
             });
         }
     }
