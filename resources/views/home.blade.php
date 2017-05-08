@@ -4,15 +4,9 @@
 @section('content')
 <body class="home" ng-controller="homeController" ng-strict-di ng-keydown="keypress($event)">
 
-    <!-- Navigation -->
-    <ul id="side-navigation" class="hide@small">
-        <li class="hidden">
-            <a class="link" ng-class="{ 'active' : activeStatistic == null }" ng-click="goHome()"></a>
-        </li>
-        <li class="hidden" ng-repeat="statistic in statistics">
-            <a class="link" ng-class="{ 'active' : statistic == activeStatistic }" ng-click="goToClickedStatistic(statistic)"></a>
-        </li>
-    </ul>
+    @if (Auth::isAdmin())
+        @include('templates.header', ['class' => 'no-background'])
+    @endif
 
     <!-- Statistics -->
     <div class="content-wrapper single-page background" ng-repeat="statistic in statistics" id="@{{ statistic.camelCaseType }}" du-scrollspy="@{{ substatistic.camelCaseType }}" href="#@{{ statistic.camelCaseType }}">
