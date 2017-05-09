@@ -146,7 +146,7 @@ class StatisticsTableSeeder extends Seeder {
             'order' => 16,
             'type' => 'Engines',
             'name' => 'Flown',
-            'description' => "SpaceX have in total launched {{ engineCount }} first stage Merlin 1D engines aboard {{ flightCount }} flights. One of the best-performing rocket engines in the world, it uses a mixture of RP-1 (Kerosene) and cryogenic Liquid Oxygen (LOX), it achieves a thrust to weight ratio exceeding 150, the highest of any kerolox engine, while delivering over 825 kN of thrust.",
+            'description' => "SpaceX have accumulated a total of {{ engineCount }} first stage Merlin 1D engines flights across {{ flightCount }} launches. One of the best-performing rocket engines in the world, it uses a mixture of RP-1 (Kerosene) and cryogenic Liquid Oxygen (LOX), it achieves a thrust to weight ratio exceeding 150, the highest of any kerolox engine, while delivering over 825 kN of thrust.",
             'unit' => json_encode('Flown'),
             'display' => 'single'
         ));

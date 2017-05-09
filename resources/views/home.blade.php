@@ -14,7 +14,7 @@
         <h1 class="fade-in-out" ng-show="statistic.show" ng-class="{ fadeIn : statistic.fadeInModel, fadeOut : statistic.fadeOutModel }">@{{ statistic.activeSubstatistic.full_title }}</h1>
 
         <main class="invert">
-            <button class="previous-stat" ng-click="goToNeighborStatistic($index - 1)"><i class="fa fa-angle-up fa-3x"></i></button>
+            <button class="previous-stat" ng-if="!$first" ng-click="goToNeighborStatistic($index - 1)"><i class="fa fa-angle-up fa-3x"></i></button>
 
             <nav class="in-page">
                 <ul class="container">
@@ -53,10 +53,6 @@
                     </countdown>
 
                     <launch-date launch-specificity="substatistic.result.launch_specificity" launch-date-time="substatistic.result.launch_date_time"></launch-date>
-
-                    <div class="launch-link">
-                        <a href="/missions/@{{ substatistic.result.slug }}">Go to Launch</a>
-                    </div>
                 </div>
 
                 <chart ng-if="substatistic.display == 'barchart'" data="substatistic.result.values" settings="substatistic.result" type="bar" width="100%" height="100%"></chart>
@@ -72,7 +68,7 @@
             </div>
 
             <p class="description fade-in-out" ng-show="statistic.show" ng-class="{ fadeIn : statistic.fadeInModel, fadeOut : statistic.fadeOutModel }">@{{ statistic.activeSubstatistic.description }}</p>
-            <button class="next-stat" ng-click="goToNeighborStatistic($index + 1)"><i class="fa fa-angle-down fa-3x"></i></button>
+            <button class="next-stat" ng-if="!$last" ng-click="goToNeighborStatistic($index + 1)"><i class="fa fa-angle-down fa-3x"></i></button>
         </main>
     </div>
 

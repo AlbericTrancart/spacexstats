@@ -7418,6 +7418,10 @@ h1 {
       height: 50px;
       font-size: 32px; } }
 
+.home h1 {
+    margin-left: 10px;
+}
+
 h2 {
   font-size: 28px;
   margin: 20px 0 10px 0;
