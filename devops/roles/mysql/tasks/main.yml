@@ -13,6 +13,7 @@
   with_items:
       - mysql-server
       - mysql-client
+      - python-mysqldb
 
 - name: Update root password for all root accounts
   mysql_user:

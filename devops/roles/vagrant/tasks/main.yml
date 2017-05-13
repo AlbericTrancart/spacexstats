@@ -1,17 +1,41 @@
 ---
 
-  - name: Remove the web folder
-    file: path=/var/www/{{ web_dirname }} state=absent
+- name: Remove the web folder
+  file: path=/var/www/{{ web_dirname }} state=absent
 
-  - name: Setup sync folder symlink
-    file: path=/var/www/{{ web_dirname }}
+- name: Setup sync folder symlink
+  file: path=/var/www/{{ web_dirname }}
           src=/vagrant
           state=link
           force=yes
-    notify: restart nginx
+  notify: restart nginx
 
-  - name: Run PHP-FPM as ubuntu user
-    lineinfile:
-        path: /etc/php/7.0/fpm/pool.d/www.conf
-        regexp: '^user = '
-        line: 'user = ubuntu'
+- name: Run PHP-FPM as ubuntu user
+  lineinfile:
+      path: /etc/php/7.0/fpm/pool.d/www.conf
+      regexp: '^user = '
+      line: 'user = ubuntu'
+
+- stat:
+    path: /var/www/{{ web_dirname }}/.env
+  register: env_file
+
+- name: Copy env file is not already defined
+  copy: remote_src=True src=/var/www/{{ web_dirname }}/.env.example dest=/var/www/{{ web_dirname }}/.env
+  when: env_file.stat.exists == False
+
+- name: Install the project - PHP dependencies
+  composer:
+      command: install
+      working_dir: /var/www/{{ web_dirname }}/
+
+- name: Install the project - JS dependencies
+  shell: "npm install --silent"
+  ignore_errors: yes # Somewhat running NPM fails Ansible randomly
+  args:
+      chdir: "/var/www/{{ web_dirname }}/" shell: "npm install --silent"
+
+- name: Change initial working directory
+  lineinfile:
+    path: /home/ubuntu/.profile
+    line: 'cd /vagrant'

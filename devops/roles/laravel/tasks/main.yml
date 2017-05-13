@@ -5,8 +5,3 @@
 
 - name: Give the permissions to the Laravel cache folder dir to www-data
   file: path=/var/www/{{ web_dirname }}/bootstrap/cache state=directory group="www-data" mode="ug+rwx"
-
-- name: Install the project
-  composer:
-      command: install
-      working_dir: /var/www/{{ web_dirname }}/

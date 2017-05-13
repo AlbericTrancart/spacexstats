@@ -5,8 +5,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   config.vm.provider :virtualbox do |v|
     v.name = "spacexstats"
-    v.memory = 512
-    v.cpus = 1
+    v.memory = 1024
+    v.cpus = 2
   end
 
   config.vm.hostname = "spacexstats"
