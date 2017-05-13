@@ -1,0 +1,17 @@
+---
+
+  - name: Remove the web folder
+    file: path=/var/www/{{ web_dirname }} state=absent
+
+  - name: Setup sync folder symlink
+    file: path=/var/www/{{ web_dirname }}
+          src=/vagrant
+          state=link
+          force=yes
+    notify: restart nginx
+
+  - name: Run PHP-FPM as ubuntu user
+    lineinfile:
+        path: /etc/php/7.0/fpm/pool.d/www.conf
+        regexp: '^user = '
+        line: 'user = ubuntu'

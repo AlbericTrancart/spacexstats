@@ -8,6 +8,7 @@
 
 # Dev tools (Ansible, NPM...)
 *.retry
+ubuntu-xenial-16.04-cloudimg-console.log
 worker.log
 npm-debug.log
 

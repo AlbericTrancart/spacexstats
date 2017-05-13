@@ -38,7 +38,9 @@
     name: "{{ web_user }}"
     comment: Manager of web applications
     shell: /bin/bash
-    group: www-admin
+    groups:
+        - www-admin
+        - www-data
     generate_ssh_key: yes
     ssh_key_bits: 2048
     ssh_key_file: .ssh/id_repo_pull
@@ -64,5 +66,10 @@
 - name: Give the permissions to the /var/www/ dir to www-admin
   file: path=/var/www state=directory group="www-admin" mode="g+wx"
 
+- stat:
+    path: /var/www/{{ web_dirname }}
+  register: var_directory
+
 - name: Ensure directory is present
   file: path=/var/www/{{ web_dirname }} state=directory group=www-admin owner={{ web_user }}
+  when: var_directory.stat.exists == False

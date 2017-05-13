@@ -1,4 +1,8 @@
 ---
+
+hostname: spacexstats
+web_dirname: spacexstats
+web_user: ubuntu
 public_keys:
     - user: "Albéric Trancart"
       state: present

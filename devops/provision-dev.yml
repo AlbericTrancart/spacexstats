@@ -4,8 +4,12 @@
    user: ubuntu
    vars_files:
     - vars/defaults.yml
+    - vars/vagrant.yml
    roles:
     - base
     - nginx
     - php7
     - composer
+    - mysql
+    - laravel
+    - vagrant
