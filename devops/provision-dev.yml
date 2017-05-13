@@ -1,0 +1,11 @@
+---
+ - hosts: all
+   become: yes
+   user: ubuntu
+   vars_files:
+    - vars/defaults.yml
+   roles:
+    - base
+    - nginx
+    - php7
+    - composer

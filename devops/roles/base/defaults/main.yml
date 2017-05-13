@@ -1,0 +1,21 @@
+---
+
+hostname: spacexstats
+web_dirname: spacexstats
+web_user: elon
+apt_packages:
+    - curl
+    - expect
+    - fail2ban  # to avoid SSH bruteforce
+    - git
+    - htop
+    - iotop
+    - make
+    - nano
+    - netcat
+    - nodejs-legacy
+    - npm
+    - traceroute
+    - tree
+    - unzip
+    - zip
