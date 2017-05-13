@@ -33,7 +33,7 @@
   shell: "npm install --silent"
   ignore_errors: yes # Somewhat running NPM fails Ansible randomly
   args:
-      chdir: "/var/www/{{ web_dirname }}/" shell: "npm install --silent"
+      chdir: "/var/www/{{ web_dirname }}/"
 
 - name: Change initial working directory
   lineinfile:

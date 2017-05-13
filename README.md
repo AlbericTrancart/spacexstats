@@ -18,6 +18,19 @@ The project will be installed on a Vagrant virtual machine. All the dev tools wi
 
 Remember, when you stop working on the project you can stop the Vagrant box with `vagrant halt`. You can delete it with `vagrant destroy`.
 
+### Working on the project
+
+When editing JS, CSS, etc files, you'll use gulp to compile these assets. On your Vagrant machine, you just have to run `npm start`.
+
+`php artisan cache:clear` clears the laravel cache, useful after db changes that you want to see reflected immediately. May affect site performance as cache is rebuilt. `php artisan view:clear` clears the cache for the views.
+
+### Deploying
+
+Deployment is done via SFTP using WinSCP (only works from windows currently).
+
+1. Modify **sftp_deploy_example.txt** with your SFTP connection info (username, password, rsa key) and save the file as **sftp_deploy.txt**.
+2. In the command prompt, simply type `deploy` and all files will be copied to the server
+
 ### Manual setup How-to
 #### Prereqs
 - PHP 5.3 or above
@@ -35,20 +48,6 @@ Remember, when you stop working on the project you can stop the Vagrant box with
   * set your Redis host and port (in the case of a local redis install, you can use 127.0.0.1 and port 6379).
 5. Now we need to seed the database. To do so, run this command: `php artisan migrate:refresh --seed`. You will get a few prompts asking if you're really sure about this, answer yes to all.
 6. If all went well, you should now be able to run the site. If you're already running IIS or Apache, you can access the site locally like you would access any normal site. If not, you can run the command `php artisan serve` to spin up a local server on port 8000.
-
-### Deploying
-(only works from windows currently)
-
-Deployment is done via SFTP using WinSCP.
-
-1. Modify **sftp_deploy_example.txt** with your SFTP connection info (username, password, rsa key) and save the file as **sftp_deploy.txt**.
-2. In the command prompt, simply type `deploy` and all files will be copied to the server
-
-### Editing Assets
-When editing JS, CSS, etc files, you'll use gulp to compile these assets.
-
-### Useful commands
-`php artisan cache:clear` or on linux `php artisan cache:clear` - clears the laravel cache, useful after db changes that you want to see reflected immediately. May affect site performance as cache is rebuilt.
 
 ## License
 <img src="https://licensebuttons.net/l/by-nc-sa/3.0/88x31.png" />
