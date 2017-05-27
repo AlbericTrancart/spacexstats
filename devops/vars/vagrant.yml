@@ -1,0 +1,7 @@
+---
+
+sites:
+    - spacexstats.dev
+
+mysql_root_password: spacexstats
+mysql_db_password: spacexstats

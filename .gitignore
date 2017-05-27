@@ -6,6 +6,12 @@
 /node_modules
 .env
 
+# Dev tools (Ansible, NPM...)
+*.retry
+ubuntu-xenial-16.04-cloudimg-console.log
+worker.log
+npm-debug.log
+
 #sftp deployment script
 sftp_deploy.txt
 sftp_deploy_sync.txt
@@ -13,7 +19,7 @@ sftp_deploy_dev.txt
 sftp_deploy_sync_dev.txt
 WinSCP.ini
 
-#frontend app stuff
+# Frontend app stuff
 /resources/assets/development
 /public/media
 /.sass-cache
@@ -30,5 +36,3 @@ test.log
 _ide_helper.php
 
 /.vagrant
-worker.log
-npm-debug.log

@@ -1,0 +1,6 @@
+mysql:
+  users:
+    - name: spacexstats
+      password: "{{ mysql_db_password }}"
+  databases:
+    - spacexstats
