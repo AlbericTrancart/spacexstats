@@ -339,9 +339,9 @@ class Mission extends Model {
      */
     public function scopeWhereComplete($query, $inclusive = false) {
         if ($inclusive) {
-            return $query->where('status', MissionStatus::Complete)->orWhere('status', MissionStatus::InProgress);
+            return $query->where('missions.status', MissionStatus::Complete)->orWhere('missions.status', MissionStatus::InProgress);
         }
-		return $query->where('status', MissionStatus::Complete);
+		return $query->where('missions.status', MissionStatus::Complete);
 	}
 
     /**

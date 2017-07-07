@@ -14,6 +14,7 @@ use SpaceXStats\Models\Payload;
 use SpaceXStats\Models\Spacecraft;
 use SpaceXStats\Models\SpacecraftFlight;
 use SpaceXStats\Models\Vehicle;
+use Illuminate\Support\Facades\Log;
 
 class StatisticResultBuilder {
 	/**
@@ -496,6 +497,21 @@ class StatisticResultBuilder {
 			return Mission::past()->first()->launch_date_time;
 
 		} else if ($substatistic == 'Over Time') {
+		} else if ($substatistic == 'LC-39A') {
+            $lowestTurnaround = null;
+            $missions = Mission::past()->where('locations.name', 'LC-39A')->join('locations', 'locations.location_id','=','missions.launch_site_id')->get()->keyBy('launch_order_id');
+            Log::info(var_export($missions, true));
+            
+            $missions->each(function($mission, $key) use ($missions, &$lowestTurnaround) {
+                if ($key == 1) {
+                    return null;
+                }
+
+                $turnaround = Carbon::parse($mission->launch_exact)->diffInSeconds(Carbon::parse($missions->get($key-1)->launch_exact));
+                $lowestTurnaround = $lowestTurnaround == null ? $turnaround : min($lowestTurnaround, $turnaround);
+            });
+
+            return $lowestTurnaround;
 		}
     }
 
