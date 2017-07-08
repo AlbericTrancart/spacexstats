@@ -14,6 +14,7 @@ use SpaceXStats\Models\Payload;
 use SpaceXStats\Models\Spacecraft;
 use SpaceXStats\Models\SpacecraftFlight;
 use SpaceXStats\Models\Vehicle;
+use Illuminate\Support\Facades\Log;
 
 class StatisticResultBuilder {
 	/**
@@ -495,7 +496,83 @@ class StatisticResultBuilder {
 		} else if ($substatistic == 'Since Last Launch') {
 			return Mission::past()->first()->launch_date_time;
 
-		} else if ($substatistic == 'Over Time') {
+		} 
+		else if ($substatistic == 'Over Time') {
+		} 
+		else if ($substatistic == 'LC-39A') {
+            $lowestTurnaround = null;
+			$previousMission = null;
+            $missions = Mission::past()
+			->where('locations.name', 'LC-39A')
+			->join('locations', 'locations.location_id','=','missions.launch_site_id')
+			->orderBy('launch_exact', 'asc')
+			->get();
+            
+            
+            //$missions->each(function($mission, $key) use ($missions, &$lowestTurnaround) {
+			$missions->each(function($mission) use ($missions, &$lowestTurnaround, &$previousMission) {
+                if ($previousMission == null) {
+					$previousMission = $mission;
+                    return null;
+                }
+
+                $turnaround = Carbon::parse($mission->launch_exact)->diffInSeconds(Carbon::parse($previousMission->launch_exact));
+                $lowestTurnaround = $lowestTurnaround == null ? $turnaround : min($lowestTurnaround, $turnaround);
+				
+				$previousMission = $mission;
+            });
+
+            return $lowestTurnaround;
+		}
+		else if ($substatistic == 'SLC-4E') {
+            $lowestTurnaround = null;
+			$previousMission = null;
+            $missions = Mission::past()
+			->where('locations.name', 'SLC-4E')
+			->join('locations', 'locations.location_id','=','missions.launch_site_id')
+			->orderBy('launch_exact', 'asc')
+			->get();
+            
+            
+            //$missions->each(function($mission, $key) use ($missions, &$lowestTurnaround) {
+			$missions->each(function($mission) use ($missions, &$lowestTurnaround, &$previousMission) {
+                if ($previousMission == null) {
+					$previousMission = $mission;
+                    return null;
+                }
+
+                $turnaround = Carbon::parse($mission->launch_exact)->diffInSeconds(Carbon::parse($previousMission->launch_exact));
+                $lowestTurnaround = $lowestTurnaround == null ? $turnaround : min($lowestTurnaround, $turnaround);
+				
+				$previousMission = $mission;
+            });
+
+            return $lowestTurnaround;
+		}
+		else if ($substatistic == 'SLC-40') {
+            $lowestTurnaround = null;
+			$previousMission = null;
+            $missions = Mission::past()
+			->where('locations.name', 'SLC-40')
+			->join('locations', 'locations.location_id','=','missions.launch_site_id')
+			->orderBy('launch_exact', 'asc')
+			->get();
+            
+            
+            //$missions->each(function($mission, $key) use ($missions, &$lowestTurnaround) {
+			$missions->each(function($mission) use ($missions, &$lowestTurnaround, &$previousMission) {
+                if ($previousMission == null) {
+					$previousMission = $mission;
+                    return null;
+                }
+
+                $turnaround = Carbon::parse($mission->launch_exact)->diffInSeconds(Carbon::parse($previousMission->launch_exact));
+                $lowestTurnaround = $lowestTurnaround == null ? $turnaround : min($lowestTurnaround, $turnaround);
+				
+				$previousMission = $mission;
+            });
+
+            return $lowestTurnaround;
 		}
     }
 
