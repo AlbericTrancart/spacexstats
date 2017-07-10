@@ -37,6 +37,7 @@ Route::get('faq/get', 'QuestionsController@get');
 Route::get('faq','QuestionsController@index');
 
 Route::get('admin', 'AdminController@index')->middleware(['mustBe:Administrator']);
+Route::get('admin/clearcache', 'AdminController@clearcache')->middleware(['mustBe:Administrator']);
 
 Route::get('newssummaries', 'NewsSummariesController@index');
 

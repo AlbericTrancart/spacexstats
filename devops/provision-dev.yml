@@ -12,4 +12,5 @@
     - composer
     - mysql
     - laravel
+    - redis
     - vagrant
