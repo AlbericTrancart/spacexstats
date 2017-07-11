@@ -72,7 +72,7 @@ class StatisticResultBuilder {
             return [
                 'values' => DB::SELECT(DB::raw('SELECT IFNULL(launches.launches, 0) as launches, years.year 
                     from year_list years
-                    left outer join (SELECT COUNT(mission_id) AS launches, YEAR(launch_exact) AS year from Missions where status = \'Complete\' group by year) AS launches on launches.year = years.year
+                    left outer join (SELECT COUNT(mission_id) AS launches, YEAR(launch_exact) AS year from missions where status = \'Complete\' group by year) AS launches on launches.year = years.year
                     where years.year BETWEEN (select MIN(YEAR(launch_exact)) from missions where status = \'Complete\') AND (select MAX(YEAR(launch_exact)) from missions where status = \'Complete\')')),
                 'extrapolation' => false,
                 'xAxis' => [
