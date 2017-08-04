@@ -1290,6 +1290,12 @@
 			$scope.partFlight.part = part;
 			$scope.showAddPart = true;
 		}
+    
+    $scope.reuseSpacecraft = function(spacecraft){
+      $scope.spacecraft_flight = {}
+      $scope.spacecraft_flight.spacecraft = spacecraft;
+      $scope.showAddSpacecraft = true;
+    }
     }]);
 
     app.service("missionService", ["$http", "CSRF_TOKEN", function($http, CSRF_TOKEN) {
@@ -2543,18 +2549,6 @@
     }]);
 })();
 
-(function() {
-    var app = angular.module('app');
-
-    app.filter('jsonPrettify', function() {
-       return function(input) {
-           if (typeof input !== 'undefined') {
-               return JSON.stringify(input, null, 2);
-           }
-           return null;
-       }
-    });
-})();
 (function() {
     var app = angular.module('app');
 
@@ -4239,4 +4233,16 @@
             }
         }
     }]);
+})();
+(function() {
+    var app = angular.module('app');
+
+    app.filter('jsonPrettify', function() {
+       return function(input) {
+           if (typeof input !== 'undefined') {
+               return JSON.stringify(input, null, 2);
+           }
+           return null;
+       }
+    });
 })();

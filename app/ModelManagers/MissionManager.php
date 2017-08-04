@@ -132,7 +132,7 @@ class MissionManager {
 
             //$this->managePayloadRelations();
             $this->managePartFlightRelations();
-            //$this->manageSpacecraftFlightRelation();
+            $this->manageSpacecraftFlightRelation();
             //$this->createPrelaunchEventRelation();
 
             DB::commit();

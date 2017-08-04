@@ -193,26 +193,26 @@
                     <div class="add-spacecraft" ng-if="mission.spacecraft_flight == null">
                         <div ng-repeat="spacecraft in data.spacecraft">
                             <span>@{{ spacecraft.name }}</span>
-                            <button ng-click="mission.addSpacecraftFlight(spacecraft)" ng-disabled="mission.spacecraft_flight != null">Reuse This Spacecraft</button>
+                            <button ng-click="reuseSpacecraft(spacecraft)" ng-disabled="mission.spacecraft_flight != null">Reuse This Spacecraft</button>
                         </div>
 
-                        <button ng-click="mission.addSpacecraftFlight()" ng-disabled="mission.spacecraft_flight != null">Add A Spacecraft</button>
+                        <button ng-click="showAddSpacecraft = true" ng-disabled="mission.spacecraft_flight != null">Add A Spacecraft</button>
                     </div>
 
-                    <div ng-if="mission.spacecraft_flight != null">
+                    <div ng-if="showAddSpacecraft == true">
                         <h3>@{{ mission.spacecraft_flight.spacecraft.name }}</h3>
 
                         <label>Name</label>
-                        <input type="text" ng-model="mission.spacecraft_flight.spacecraft.name" />
+                        <input type="text" ng-model="spacecraft_flight.spacecraft.name" />
 
                         <label>Type</label>
-                        <select ng-model="mission.spacecraft_flight.spacecraft.type" ng-options="spacecraftType for spacecraftType in data.spacecraftTypes"></select>
+                        <select ng-model="spacecraft_flight.spacecraft.type" ng-options="spacecraftType for spacecraftType in data.spacecraftTypes"></select>
 
                         <label>Flight Name</label>
-                        <input type="text" ng-model="mission.spacecraft_flight.flight_name" />
+                        <input type="text" ng-model="spacecraft_flight.flight_name" />
 
                         <label>Return Method</label>
-                        <select ng-model="mission.spacecraft_flight.return_method" ng-options="returnMethod for returnMethod in data.returnMethods"></select>
+                        <select ng-model="spacecraft_flight.return_method" ng-options="returnMethod for returnMethod in data.returnMethods"></select>
 
                         <fieldset>
                             <label>Astronauts</label>
@@ -220,7 +220,7 @@
                             <select ng-model="selected.astronaut" ng-options="astronaut as astronaut.fullName for astronaut in data.astronauts">
                                 <option value="">New...</option>
                             </select>
-                            <button ng-click="mission.spacecraftFlight.addAstronautFlight(selected.astronaut)">Add Astronaut</button>
+                            <button ng-click="spacecraftFlight.addAstronautFlight(selected.astronaut)">Add Astronaut</button>
 
                             <div ng-repeat="astronautFlight in mission.spacecraft_flight.astronaut_flights">
                                 <h3>@{{ astronaut_flight.astronaut.full_name }}</h3>
