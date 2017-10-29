@@ -1,3 +1,6 @@
+This is the repo for the old version of SpaceX Stats. To access the new repo, see [spacexstats-react](https://github.com/r-spacex/spacexstats-react).
+
+
 # SpaceX Stats
 A fan website for the company SpaceX originally created by Luke Davia ([Twitter](https://twitter.com/lukealization), [Reddit](https://reddit.com/u/EchoLogic)).
 
